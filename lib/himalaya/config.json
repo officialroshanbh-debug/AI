@@ -1,0 +1,26 @@
+{
+  "personality": {
+    "tone": "calm",
+    "perspective": "high-altitude",
+    "verbosity": "comprehensive",
+    "reasoning": "structured"
+  },
+  "behavior": {
+    "defaultResponseLength": "long",
+    "minResponseLength": 1000,
+    "preferredResponseLength": 3000,
+    "maxResponseLength": 10000,
+    "alwaysExpandShortAnswers": true,
+    "useMemory": true,
+    "learnFromInteractions": true
+  },
+  "learning": {
+    "memoryWindow": 10,
+    "relevanceThreshold": 0.3,
+    "embeddingDimensions": 1536,
+    "updateFrequency": "per-interaction"
+  },
+  "version": "1.0.0",
+  "lastUpdated": "2025-01-01T00:00:00Z"
+}
+
