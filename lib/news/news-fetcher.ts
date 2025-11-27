@@ -1,5 +1,16 @@
 import { NEPAL_NEWS_SOURCES, type NewsItem, type NewsSource } from './nepal-news-sources';
 
+// Create a simple hash for IDs (works in Edge and Node.js)
+function createHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash).toString(36).slice(0, 20);
+}
+
 interface RSSItem {
   title: string;
   description?: string;
@@ -106,8 +117,11 @@ function parseRSSFeed(xmlText: string, source: NewsSource): NewsItem[] {
           const imageUrl = imageMatch ? imageMatch[1] : undefined;
 
           if (title && link && link.startsWith('http')) {
+            // Create a unique ID using hash function
+            const linkHash = createHash(link);
+            
             items.push({
-              id: `${source.id}-${Buffer.from(link).toString('base64').slice(0, 50)}`,
+              id: `${source.id}-${linkHash}`,
               title,
               description,
               link,
