@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ExternalLink, RefreshCw, Newspaper } from 'lucide-react';
+import { ExternalLink, RefreshCw, Newspaper, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatRelativeTime } from '@/lib/utils';

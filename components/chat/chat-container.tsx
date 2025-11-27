@@ -156,7 +156,7 @@ export function ChatContainer({
               <div className="text-center space-y-4">
                 <h2 className="text-2xl font-semibold">Start a conversation</h2>
                 <p className="text-muted-foreground">
-                  Choose a model and ask anything you'd like to know.
+                  Choose a model and ask anything you&apos;d like to know.
                 </p>
               </div>
             </div>
