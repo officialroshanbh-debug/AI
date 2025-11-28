@@ -26,18 +26,18 @@ const noopLimiter: RateLimiterInterface = {
 };
 
 export const rateLimiter: RateLimiterInterface = redis
-  ? new Ratelimit({
+  ? (new Ratelimit({
       redis,
       limiter: Ratelimit.slidingWindow(10, '10 s'),
       analytics: true,
-    })
+    }) as unknown as RateLimiterInterface)
   : noopLimiter;
 
 export const strictRateLimiter: RateLimiterInterface = redis
-  ? new Ratelimit({
+  ? (new Ratelimit({
       redis,
       limiter: Ratelimit.slidingWindow(5, '1 m'),
       analytics: true,
-    })
+    }) as unknown as RateLimiterInterface)
   : noopLimiter;
 
