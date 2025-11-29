@@ -1,5 +1,6 @@
 import { handlers } from '@/auth';
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 // Wrap handlers with error handling
 async function handleRequest(
@@ -10,6 +11,10 @@ async function handleRequest(
     return await handler(req);
   } catch (error) {
     console.error('[Auth Route] Error:', error);
+    // Log full error details for debugging
+    if (error instanceof Error) {
+      console.error('[Auth Route] Error stack:', error.stack);
+    }
     // Return error response instead of crashing
     return NextResponse.json(
       { 
