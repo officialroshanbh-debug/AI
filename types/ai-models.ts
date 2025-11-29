@@ -84,11 +84,11 @@ export const MODEL_CONFIGS: Record<ModelId, ModelConfig> = {
   [MODEL_IDS.O3_MINI]: {
     id: MODEL_IDS.O3_MINI,
     name: 'o3-mini',
-    description: 'Fast and efficient reasoning model',
+    description: 'Fast and efficient reasoning model (maps to gpt-3.5-turbo, max 4096 tokens)',
     provider: 'openai',
     supportsStreaming: true,
     supportsLongForm: false,
-    maxTokens: 4096,
+    maxTokens: 4096, // gpt-3.5-turbo actual limit
     defaultTemperature: 0.5,
   },
   [MODEL_IDS.GEMINI_2_0]: {

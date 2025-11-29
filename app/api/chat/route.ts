@@ -79,6 +79,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid model' }, { status: 400 });
     }
 
+    // Ensure maxTokens doesn't exceed model's limit
+    const finalMaxTokens = maxTokens 
+      ? Math.min(maxTokens, config.maxTokens)
+      : config.maxTokens;
+
     // Get or create chat
     let chat;
     try {
@@ -145,7 +150,7 @@ export async function POST(req: NextRequest) {
             })),
             model,
             temperature: temperature ?? config.defaultTemperature,
-            maxTokens: maxTokens ?? config.maxTokens,
+            maxTokens: finalMaxTokens,
             userId,
             chatId: chat.id,
           })) {

@@ -16,6 +16,13 @@ const MODEL_MAP: Record<string, string> = {
   'o3-mini': 'gpt-3.5-turbo',
 };
 
+// Model-specific max token limits (actual API limits)
+const MODEL_MAX_TOKENS: Record<string, number> = {
+  'gpt-4o': 16384,
+  'gpt-4-turbo-preview': 8192,
+  'gpt-3.5-turbo': 4096,
+};
+
 export class OpenAIProvider implements AIModelProvider {
   id = 'openai';
   name = 'OpenAI';
@@ -33,11 +40,17 @@ export class OpenAIProvider implements AIModelProvider {
       content: msg.content,
     }));
 
+    // Cap max_tokens to the model's actual limit
+    const modelMaxTokens = MODEL_MAX_TOKENS[model] || 4096;
+    const maxTokens = params.maxTokens 
+      ? Math.min(params.maxTokens, modelMaxTokens)
+      : modelMaxTokens;
+
     const response = await openai.chat.completions.create({
       model,
       messages,
       temperature: params.temperature ?? 0.7,
-      max_tokens: params.maxTokens,
+      max_tokens: maxTokens,
     });
 
     const choice = response.choices[0];
@@ -55,11 +68,17 @@ export class OpenAIProvider implements AIModelProvider {
       content: msg.content,
     }));
 
+    // Cap max_tokens to the model's actual limit
+    const modelMaxTokens = MODEL_MAX_TOKENS[model] || 4096;
+    const maxTokens = params.maxTokens 
+      ? Math.min(params.maxTokens, modelMaxTokens)
+      : modelMaxTokens;
+
     const stream = await openai.chat.completions.create({
       model,
       messages,
       temperature: params.temperature ?? 0.7,
-      max_tokens: params.maxTokens,
+      max_tokens: maxTokens,
       stream: true,
     });
 
