@@ -119,9 +119,10 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
                 components={{
-                  code({ node: _node, inline, className, children, ...props }) {
+                  code({ node: _node, className, children, ...props }: any) {
                     const match = /language-(\w+)/.exec(className || '');
                     const codeString = String(children).replace(/\n$/, '');
+                    const inline = !match; // If no language match, it's inline code
 
                     return !inline && match ? (
                       <div className="group/code relative my-4">
@@ -171,7 +172,7 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
                       </code>
                     );
                   },
-                  a({ node: _node, children, ...props }) {
+                  a({ node: _node, children, ...props }: any) {
                     return (
                       <a
                         className="font-medium text-primary underline decoration-primary/30 underline-offset-4 transition-colors hover:decoration-primary"
@@ -183,7 +184,7 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
                       </a>
                     );
                   },
-                  table({ node: _node, children, ...props }) {
+                  table({ node: _node, children, ...props }: any) {
                     return (
                       <div className="my-4 overflow-x-auto rounded-lg border border-border">
                         <table className="w-full" {...props}>
@@ -192,7 +193,7 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
                       </div>
                     );
                   },
-                  blockquote({ node: _node, children, ...props }) {
+                  blockquote({ node: _node, children, ...props }: any) {
                     return (
                       <blockquote
                         className="glass my-4 border-l-4 border-primary pl-4"
