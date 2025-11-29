@@ -31,7 +31,7 @@ export async function scrapeArticleContent(url: string): Promise<ScrapedContent 
     // Extract content using common article selectors
     const content = extractArticleContent(html, url);
     
-    if (!content || content.length < 100) {
+    if (!content || content.length < 500) {
       return null; // Too short, probably not the main content
     }
 
