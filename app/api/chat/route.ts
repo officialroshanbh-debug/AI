@@ -7,22 +7,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 
-// Model mapping and actual API limits for OpenAI models
-const OPENAI_MODEL_MAP: Record<string, string> = {
-  'gpt-5.1': 'gpt-4o',
-  'gpt-4.1': 'gpt-4-turbo-preview',
-  'o3-mini': 'gpt-3.5-turbo',
+// Model mapping with fallbacks - using more universally available models
+const OPENAI_MODEL_MAP: Record<string, string[]> = {
+  'gpt-5.1': ['gpt-4', 'gpt-4o', 'gpt-4-turbo'],
+  'gpt-4.1': ['gpt-4', 'gpt-4-turbo', 'gpt-4-turbo-preview'],
+  'o3-mini': ['gpt-3.5-turbo-0125', 'gpt-3.5-turbo-1106', 'gpt-3.5-turbo'],
 };
 
 const OPENAI_MODEL_LIMITS: Record<string, number> = {
+  'gpt-4': 8192,
   'gpt-4o': 16384,
+  'gpt-4-turbo': 128000,
   'gpt-4-turbo-preview': 8192,
+  'gpt-3.5-turbo-0125': 16385,
+  'gpt-3.5-turbo-1106': 16385,
   'gpt-3.5-turbo': 4096,
 };
 
 function getActualModelLimit(modelId: ModelId, config: { provider: string; maxTokens: number }): number {
   if (config.provider === 'openai') {
-    const actualModelName = OPENAI_MODEL_MAP[modelId] || 'gpt-4o';
+    const models = OPENAI_MODEL_MAP[modelId] || ['gpt-4'];
+    const actualModelName = models[0]; // Use first (preferred) model for limit calculation
     return OPENAI_MODEL_LIMITS[actualModelName] || config.maxTokens;
   }
   return config.maxTokens;
