@@ -7,11 +7,10 @@ import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  // Use standard env var names
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   adapter: PrismaAdapter(prisma),
   session: {
-    strategy: 'jwt', // Required for Edge compatibility if using Prisma
+    strategy: 'jwt',
   },
   pages: {
     signIn: '/auth/signin',
@@ -20,7 +19,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      allowDangerousEmailAccountLinking: true, // Allow linking if email matches
+      allowDangerousEmailAccountLinking: true,
     }),
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID,
@@ -43,7 +42,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         });
 
         if (!user || !user.password) {
-          return null; // Invalid credentials
+          return null;
         }
 
         const isValid = await bcrypt.compare(
@@ -65,8 +64,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    // We only need to ensure the ID is passed to the token/session
-    // The Adapter handles user creation and account linking automatically
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
@@ -82,4 +79,3 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
 });
-
