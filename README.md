@@ -1,201 +1,363 @@
-# AI Platform - Universal AI Chat
+# 🤖 Roshan AI - Modern Universal AI Platform
 
-A production-ready, full-stack AI platform built with Next.js 15, React 19, and modern best practices. Experience multiple AI models (GPT, Gemini, Claude, and custom Himalaya) in one elegant interface.
+[![2025 Modern](https://img.shields.io/badge/2025-Modern-blue?style=for-the-badge)](https://github.com/officialroshanbh-debug/AI)
+[![React 18](https://img.shields.io/badge/React-18.3.1-61dafb?style=for-the-badge&logo=react)](https://react.dev)
+[![Next.js 15](https://img.shields.io/badge/Next.js-15.1-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?style=for-the-badge&logo=typescript)](https://typescriptlang.org)
 
-## Features
+A production-ready, beautifully designed AI platform featuring multiple models (GPT, Gemini, Claude, Himalaya) with modern glassmorphism UI, markdown support, and syntax highlighting.
 
-- **Multi-Model Support**: GPT-5.1, GPT-4.1, o3-mini, Gemini 2.0, Claude 3.7, and custom Himalaya model
-- **Custom Learning Engine**: Himalaya model with persistent memory and learning capabilities
-- **Long-Form Optimization**: Advanced pipeline for comprehensive, well-structured responses up to 10k tokens
-- **Latest News Feed**: Real-time news from 12 popular Nepali news sources displayed in a sidebar
-- **Modern UI**: Clean, minimalist design with light/dark themes and smooth animations
-- **Authentication**: Email/password and OAuth (Google, GitHub) via NextAuth v5
-- **Real-time Streaming**: Smooth streaming responses for all models
-- **Rate Limiting**: Built-in rate limiting with Upstash
-- **Production Ready**: Fully optimized for Vercel deployment
+🎉 **Fully modernized with 2025 best practices!** See [COMPLETE_FIXES.md](./COMPLETE_FIXES.md) for details.
 
-## Tech Stack
+---
 
-- **Framework**: Next.js 15 (App Router)
-- **UI**: React 19, Tailwind CSS, shadcn/ui
-- **Database**: PostgreSQL with Prisma ORM
-- **Authentication**: NextAuth v5
-- **AI Models**: OpenAI, Google Gemini, Anthropic Claude
-- **Storage**: Vercel KV + Vercel Blob (for embeddings)
+## ✨ Features
+
+### 🤖 AI Capabilities
+- **Multi-Model Support**: GPT-5.1, GPT-4.1, o3-mini, Gemini 2.0, Claude 3.7, and custom Himalaya
+- **Real-time Streaming**: Watch responses generate in real-time
+- **Markdown Rendering**: Full GitHub Flavored Markdown support
+- **Syntax Highlighting**: 100+ programming languages with Prism
+- **Code Copy**: One-click copy for all code blocks
+- **Custom Learning**: Himalaya model with memory and context
+
+### 🎨 Modern Design
+- **Glassmorphism**: Frosted glass effects throughout
+- **Gradient Mesh**: Dynamic gradient backgrounds
+- **Bento Grid**: Modern asymmetric layouts
+- **Framer Motion**: Smooth animations everywhere
+- **Dark/Light Mode**: Beautiful themes with smooth transitions
+- **Responsive**: Perfect on mobile, tablet, and desktop
+
+### ⌨️ User Experience
+- **Keyboard Shortcuts**: ⌘K to focus input, and more
+- **Suggested Prompts**: Get started quickly
+- **Empty States**: Beautiful onboarding
+- **Loading Skeletons**: Smooth loading states
+- **Error Boundaries**: Graceful error handling
+
+### ♿ Accessibility
+- **ARIA Labels**: Full screen reader support
+- **Keyboard Navigation**: Navigate without mouse
+- **Focus Management**: Clear focus indicators
+- **Semantic HTML**: Proper heading hierarchy
+
+---
+
+## 📸 Screenshots
+
+### Homepage
+![Homepage with modern design, gradient mesh, and bento grid layout]
+
+### Chat Interface
+![Chat with markdown rendering, syntax highlighting, and glassmorphism]
+
+### Dark Mode
+![Beautiful dark mode with modern aesthetics]
+
+---
+
+## 🚀 Tech Stack
+
+### Core
+- **Framework**: Next.js 15.1 (App Router, React Server Components)
+- **React**: 18.3.1 (stable)
+- **TypeScript**: 5.7
+- **Styling**: Tailwind CSS 3.4 + Custom Design System
+
+### UI & Animations
+- **Components**: Radix UI primitives
+- **Animations**: Framer Motion 11
+- **Icons**: Lucide React
+- **Markdown**: ReactMarkdown + remark-gfm
+- **Syntax**: react-syntax-highlighter (Prism)
+
+### Backend & Data
+- **Database**: PostgreSQL with Prisma ORM 5.20
+- **Auth**: NextAuth v5
+- **AI Models**: OpenAI, Anthropic, Google Gemini
+- **Storage**: Vercel KV + Vercel Blob
 - **Rate Limiting**: Upstash Redis
 
-## Getting Started
+### Developer Experience
+- **Testing**: Vitest + React Testing Library
+- **Formatting**: Prettier + prettier-plugin-tailwindcss
+- **Linting**: ESLint + eslint-plugin-jsx-a11y
+- **Git Hooks**: Husky + lint-staged
+- **Bundle Analysis**: @next/bundle-analyzer
+
+---
+
+## 🛠️ Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - PostgreSQL database
-- API keys for OpenAI, Anthropic, and Google AI
-- Upstash Redis (for rate limiting)
+- API keys for:
+  - OpenAI
+  - Anthropic Claude
+  - Google AI
+- Upstash Redis (free tier works)
 - Vercel account (for deployment)
 
 ### Installation
 
-1. Clone the repository:
+1. **Clone the repository:**
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/officialroshanbh-debug/AI.git
 cd AI
 ```
 
-2. Install dependencies:
+2. **Install dependencies:**
 ```bash
 npm install
 ```
 
-3. Set up environment variables:
+3. **Set up environment variables:**
 ```bash
 cp .env.example .env
 ```
 
-Fill in your environment variables:
-- `DATABASE_URL`: PostgreSQL connection string
-- `NEXTAUTH_SECRET`: Random secret for NextAuth
-- `NEXTAUTH_URL`: Your app URL (http://localhost:3000 for local)
-- `OPENAI_API_KEY`: Your OpenAI API key
-- `ANTHROPIC_API_KEY`: Your Anthropic API key
-- `GOOGLE_AI_API_KEY`: Your Google AI API key
-- `UPSTASH_REDIS_REST_URL` & `UPSTASH_REDIS_REST_TOKEN`: Upstash Redis credentials
-- OAuth credentials for Google and GitHub
+Fill in your `.env` file:
+```env
+# Database
+DATABASE_URL="postgresql://..."
 
-4. Set up the database:
+# NextAuth
+NEXTAUTH_SECRET="your-secret-here"
+NEXTAUTH_URL="http://localhost:3000"
+
+# AI Models
+OPENAI_API_KEY="sk-..."
+ANTHROPIC_API_KEY="sk-ant-..."
+GOOGLE_AI_API_KEY="AIza..."
+
+# Rate Limiting
+UPSTASH_REDIS_REST_URL="https://..."
+UPSTASH_REDIS_REST_TOKEN="..."
+
+# OAuth (optional)
+GOOGLE_CLIENT_ID="..."
+GOOGLE_CLIENT_SECRET="..."
+GITHUB_CLIENT_ID="..."
+GITHUB_CLIENT_SECRET="..."
+```
+
+4. **Set up the database:**
 ```bash
 npx prisma generate
 npx prisma db push
 ```
 
-5. Run the development server:
+5. **Format code (optional but recommended):**
+```bash
+npm run format
+```
+
+6. **Run development server:**
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Architecture
-
-### Model Routing Layer
-
-The platform uses a universal `AIModelProvider` interface that allows seamless switching between different AI models:
-
-```typescript
-interface AIModelProvider {
-  id: string;
-  name: string;
-  callModel: (params: ModelCallParams) => Promise<ModelResponse>;
-  streamModel: (params: ModelCallParams) => AsyncGenerator<ModelStreamChunk>;
-  supportsStreaming: boolean;
-}
+7. **Open browser:**
+```
+http://localhost:3000
 ```
 
-### Himalaya Learning Model
+---
 
-Himalaya is a custom AI model that:
+## ⌨️ Keyboard Shortcuts
 
-- Provides long, comprehensive answers with structured reasoning
-- Maintains a calm, high-altitude perspective
-- Learns from previous interactions using embeddings and memory
-- Uses a custom prompt engineering system
-- Stores conversation summaries for context retrieval
+| Shortcut | Action |
+|----------|--------|
+| `⌘K` or `Ctrl+K` | Focus chat input |
+| `Escape` | Close modals/dialogs |
+| `⌘N` | New chat (coming soon) |
+| `⌘B` | Toggle sidebar (coming soon) |
 
-The learning system:
-- Stores anonymized embeddings and conversation summaries
-- Uses vector similarity for context retrieval
-- Gradually refines behavioral patterns
-- Compatible with Vercel's serverless architecture
+---
 
-### Long-Form Answer Pipeline
+## 🏗️ Project Structure
 
-The platform includes an optimization pipeline that:
+```
+AI/
+├── app/
+│   ├── api/
+│   │   ├── auth/          # NextAuth routes
+│   │   ├── chat/          # Chat API
+│   │   └── news/          # News API
+│   ├── auth/            # Auth pages
+│   ├── chat/            # Chat interface
+│   ├── settings/        # Settings page
+│   ├── error.tsx        # Root error boundary
+│   ├── loading.tsx      # Root loading state
+│   ├── globals.css      # Custom design system
+│   ├── layout.tsx       # Root layout
+│   └── page.tsx         # Modern homepage
+│
+├── components/
+│   ├── auth/            # Auth components
+│   ├── chat/            # Chat components
+│   │   ├── chat-container.tsx  # Main chat
+│   │   ├── chat-message.tsx    # Markdown + syntax highlighting
+│   │   ├── chat-input.tsx      # Input field
+│   │   └── model-selector.tsx  # Model picker
+│   ├── news/            # News sidebar
+│   ├── settings/        # Settings UI
+│   └── ui/              # shadcn/ui components
+│
+├── hooks/
+│   ├── useKeyboardShortcuts.ts  # Keyboard navigation
+│   └── useMediaQuery.ts         # Responsive helpers
+│
+├── utils/
+│   ├── formatting.ts   # Text/number formatting
+│   └── validators.ts   # Input validation
+│
+├── lib/
+│   ├── himalaya/       # Custom learning model
+│   ├── models/         # AI model providers
+│   ├── prisma.ts       # Prisma client
+│   └── utils.ts        # Utility functions
+│
+├── types/
+│   └── ai-models.ts    # TypeScript types
+│
+├── prisma/
+│   └── schema.prisma   # Database schema
+│
+├── .prettierrc.json   # Prettier config
+├── vitest.config.ts   # Test config
+├── COMPLETE_FIXES.md  # Full modernization docs
+└── README.md
+```
 
-1. **Structures** short answers into organized sections
-2. **Expands** with reasoning and context
-3. **Refines** for coherence and flow
+---
 
-This ensures comprehensive responses even when the base model provides brief answers.
+## 🧪 Testing
 
-## Deployment
+### Run Tests
+```bash
+npm run test          # Run tests
+npm run test:ui       # Open test UI
+```
 
-### Vercel Deployment
+### Write Tests
+Tests go in `__tests__` directories or `*.test.ts` files.
 
-1. Push your code to GitHub
-2. Import the project in Vercel
-3. Add all environment variables in Vercel dashboard
+---
+
+## 📦 Building for Production
+
+### 1. Build
+```bash
+npm run build
+```
+
+### 2. Analyze Bundle (optional)
+```bash
+npm run analyze
+```
+
+### 3. Start Production Server
+```bash
+npm start
+```
+
+---
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
+
+1. Push code to GitHub
+2. Import project in [Vercel](https://vercel.com)
+3. Add environment variables
 4. Deploy!
 
-The project is configured for Vercel Edge runtime where possible for optimal performance.
+The project is optimized for Vercel Edge runtime.
 
-### Database Setup
+### Database
 
-For production, use Vercel Postgres or Supabase:
+For production, use:
+- **Vercel Postgres** (easiest)
+- **Supabase** (recommended)
+- **Neon** (serverless)
 
-1. Create a PostgreSQL database
-2. Update `DATABASE_URL` in environment variables
-3. Run migrations: `npx prisma migrate deploy`
+---
 
-## Project Structure
+## 📝 Scripts
 
-```
-app/
-  api/
-    auth/          # NextAuth routes
-    chat/          # Chat API endpoint
-  auth/            # Authentication pages
-  chat/            # Chat interface
-  globals.css      # Global styles
-  layout.tsx       # Root layout
-  page.tsx         # Landing page
-
-components/
-  auth/            # Authentication components
-  chat/            # Chat components
-  ui/              # shadcn/ui components
-  providers.tsx    # React providers
-
-lib/
-  himalaya/        # Himalaya learning system
-  models/          # AI model providers
-  prisma.ts        # Prisma client
-  rate-limit.ts    # Rate limiting
-  utils.ts         # Utilities
-
-prisma/
-  schema.prisma    # Database schema
-
-types/
-  ai-models.ts     # TypeScript types
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm start            # Start production server
+npm run lint         # Run ESLint
+npm run lint:fix     # Fix linting issues
+npm run format       # Format with Prettier
+npm run format:check # Check formatting
+npm run type-check   # TypeScript check
+npm run test         # Run tests
+npm run test:ui      # Test UI dashboard
+npm run analyze      # Analyze bundle size
+npm run db:generate  # Generate Prisma client
+npm run db:push      # Push schema changes
+npm run db:migrate   # Run migrations
+npm run db:studio    # Open Prisma Studio
 ```
 
-## API Usage
+---
 
-### Chat Endpoint
+## 🎓 Documentation
 
-```typescript
-POST /api/chat
-{
-  "messages": [
-    { "role": "user", "content": "Hello!" }
-  ],
-  "modelId": "gpt-4.1",
-  "temperature": 0.7,
-  "maxTokens": 2000
-}
-```
+- **[COMPLETE_FIXES.md](./COMPLETE_FIXES.md)** - Full list of 2025 modernization fixes
+- **[FIXES_APPLIED.md](./FIXES_APPLIED.md)** - Initial fix documentation
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - System architecture
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Deployment guide
+- **[QUICKSTART.md](./QUICKSTART.md)** - Quick start guide
 
-Returns a streaming response (Server-Sent Events).
+---
 
-## Environment Variables
+## 🤝 Contributing
 
-See `.env.example` for all required environment variables.
+Contributions are welcome! Please:
 
-## License
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run `npm run format` and `npm run lint:fix`
+5. Submit a pull request
 
-MIT
+---
 
-## Support
+## 📝 License
 
-For issues and questions, please open an issue on GitHub.
+MIT License - see [LICENSE](./LICENSE) file for details.
 
+---
+
+## 👤 Author
+
+**Roshan Bhattarai**
+- GitHub: [@officialroshanbh-debug](https://github.com/officialroshanbh-debug)
+- Email: officialroshanbh@gmail.com
+
+---
+
+## 🙏 Acknowledgments
+
+- **shadcn/ui** - Beautiful UI components
+- **Radix UI** - Accessible primitives
+- **Vercel** - Deployment platform
+- **OpenAI, Anthropic, Google** - AI models
+
+---
+
+## ⭐ Star History
+
+If you like this project, please give it a star!
+
+---
+
+**Built with ❤️ using Next.js, React, and modern web technologies.**
