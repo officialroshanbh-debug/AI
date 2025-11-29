@@ -10,45 +10,57 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Model mapping with fallbacks - using more universally available models
+// Model mapping with fallbacks - using current OpenAI models (as of 2024)
+// Based on OpenAI Platform documentation: https://platform.openai.com/docs/overview
 const MODEL_MAP: Record<string, string[]> = {
-  'gpt-5.1': ['gpt-4', 'gpt-4o', 'gpt-4-turbo'], // Try gpt-4 first (most widely available)
-  'gpt-4.1': ['gpt-4', 'gpt-4-turbo', 'gpt-4-turbo-preview'],
-  'o3-mini': ['gpt-3.5-turbo-0125', 'gpt-3.5-turbo-1106', 'gpt-3.5-turbo'],
+  'gpt-5.1': ['gpt-4o', 'gpt-4-turbo', 'gpt-4'], // gpt-4o is the latest and most capable
+  'gpt-4.1': ['gpt-4-turbo', 'gpt-4o', 'gpt-4'], // gpt-4-turbo for long context
+  'o3-mini': ['gpt-3.5-turbo', 'gpt-3.5-turbo-0125'], // Use latest gpt-3.5-turbo by default
 };
 
 // Model context window sizes (total tokens including input + output)
+// Source: OpenAI API documentation
 const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
   'gpt-4': 8192,
-  'gpt-4o': 128000,
-  'gpt-4-turbo': 128000,
-  'gpt-4-turbo-preview': 8192,
+  'gpt-4o': 128000, // 128k context window
+  'gpt-4-turbo': 128000, // 128k context window
+  'gpt-3.5-turbo': 16385, // 16k context window
   'gpt-3.5-turbo-0125': 16385,
   'gpt-3.5-turbo-1106': 16385,
-  'gpt-3.5-turbo': 16385,
 };
 
-// Simple token estimation: ~4 characters per token (rough estimate)
+// Improved token estimation using OpenAI's recommended approximation
+// For English text: ~4 characters per token, but accounts for common patterns
 function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
+  if (!text) return 0;
+  // More accurate estimation: account for spaces, punctuation, and common words
+  // This is still an approximation - for production, consider using tiktoken
+  const words = text.trim().split(/\s+/).length;
+  const chars = text.length;
+  // Average: ~0.75 tokens per word, or ~4 chars per token (whichever is more conservative)
+  return Math.max(Math.ceil(words * 0.75), Math.ceil(chars / 4));
 }
 
-// Calculate available tokens for output based on input messages
-function calculateAvailableTokens(model: string, messages: Array<{ role: string; content: string }>): number {
-  const contextWindow = MODEL_CONTEXT_WINDOWS[model] || 8192;
+// Calculate safe max_tokens if needed, but prefer not setting it (let OpenAI decide)
+// According to OpenAI docs: max_tokens is optional. If not set, model generates until stop or context limit
+function calculateSafeMaxTokens(model: string, messages: Array<{ role: string; content: string }>, requestedMax?: number): number | undefined {
+  // If maxTokens is explicitly requested, validate it against context window
+  if (requestedMax) {
+    const contextWindow = MODEL_CONTEXT_WINDOWS[model] || 8192;
+    
+    // Estimate input tokens (rough)
+    const inputTokens = messages.reduce((sum, msg) => {
+      return sum + 4 + estimateTokens(msg.content); // 4 tokens overhead per message
+    }, 0);
+    
+    // Ensure requested max doesn't exceed available context
+    const maxAvailable = contextWindow - inputTokens - 100; // 100 token safety buffer
+    return Math.min(requestedMax, Math.max(100, maxAvailable));
+  }
   
-  // Estimate input tokens
-  const inputTokens = messages.reduce((sum, msg) => {
-    // Each message has overhead (role, formatting) ~4 tokens + content
-    return sum + 4 + estimateTokens(msg.content);
-  }, 0);
-  
-  // Reserve 10% buffer and calculate available output tokens
-  const buffer = Math.ceil(contextWindow * 0.1);
-  const available = contextWindow - inputTokens - buffer;
-  
-  // Return at least 100 tokens, or available if more
-  return Math.max(100, available);
+  // If not requested, return undefined (let OpenAI handle it)
+  // This follows OpenAI best practice: only set max_tokens when you need to limit output
+  return undefined;
 }
 
 export class OpenAIProvider implements AIModelProvider {
@@ -90,19 +102,23 @@ export class OpenAIProvider implements AIModelProvider {
     }));
 
     const response = await this.tryModelWithFallback(models, async (model) => {
-      // Calculate available tokens dynamically based on input
-      const availableTokens = calculateAvailableTokens(model, messages);
-      
-      // Use requested maxTokens if provided, otherwise use available tokens
-      // Don't cap it - let the API handle validation
-      const maxTokens = params.maxTokens || availableTokens;
+      // According to OpenAI docs: max_tokens is optional
+      // Only set it if explicitly requested, and validate against context window
+      const maxTokens = calculateSafeMaxTokens(model, messages, params.maxTokens);
 
-      return await openai.chat.completions.create({
+      // Build request - only include max_tokens if it's defined
+      const requestParams: Parameters<typeof openai.chat.completions.create>[0] = {
         model,
         messages,
         temperature: params.temperature ?? 0.7,
-        max_tokens: maxTokens,
-      });
+      };
+
+      // Only add max_tokens if it was requested (following OpenAI best practices)
+      if (maxTokens !== undefined) {
+        requestParams.max_tokens = maxTokens;
+      }
+
+      return await openai.chat.completions.create(requestParams);
     });
 
     const choice = response.choices[0];
@@ -126,20 +142,24 @@ export class OpenAIProvider implements AIModelProvider {
     // Try models with fallback
     for (const model of models) {
       try {
-        // Calculate available tokens dynamically based on input
-        const availableTokens = calculateAvailableTokens(model, messages);
-        
-        // Use requested maxTokens if provided, otherwise use available tokens
-        // Don't cap it - let the API handle validation
-        const maxTokens = params.maxTokens || availableTokens;
+        // According to OpenAI docs: max_tokens is optional
+        // Only set it if explicitly requested, and validate against context window
+        const maxTokens = calculateSafeMaxTokens(model, messages, params.maxTokens);
 
-        stream = await openai.chat.completions.create({
+        // Build request - only include max_tokens if it's defined
+        const requestParams: Parameters<typeof openai.chat.completions.create>[0] = {
           model,
           messages,
           temperature: params.temperature ?? 0.7,
-          max_tokens: maxTokens,
           stream: true,
-        });
+        };
+
+        // Only add max_tokens if it was requested (following OpenAI best practices)
+        if (maxTokens !== undefined) {
+          requestParams.max_tokens = maxTokens;
+        }
+
+        stream = await openai.chat.completions.create(requestParams);
         break; // Success, exit loop
       } catch (error: any) {
         // If it's a model_not_found error, try next model
@@ -151,26 +171,33 @@ export class OpenAIProvider implements AIModelProvider {
           }
           continue;
         }
-        // Handle context_length_exceeded by reducing max_tokens
+        // Handle context_length_exceeded error
+        // This means input + max_tokens exceeds context window
         if (error?.code === 'context_length_exceeded') {
-          console.warn(`[OpenAI] Context length exceeded for ${model}, reducing max_tokens...`);
-          // Try with reduced tokens (50% of available)
-          const availableTokens = calculateAvailableTokens(model, messages);
-          const reducedTokens = Math.floor(availableTokens * 0.5);
+          console.warn(`[OpenAI] Context length exceeded for ${model}`);
           
-          try {
-            stream = await openai.chat.completions.create({
-              model,
-              messages,
-              temperature: params.temperature ?? 0.7,
-              max_tokens: reducedTokens,
-              stream: true,
-            });
-            break; // Success with reduced tokens
-          } catch (retryError: any) {
-            // If still fails, try next model
+          // If max_tokens was set, try without it (let OpenAI decide)
+          if (params.maxTokens) {
+            try {
+              stream = await openai.chat.completions.create({
+                model,
+                messages,
+                temperature: params.temperature ?? 0.7,
+                stream: true,
+                // Don't set max_tokens - let OpenAI use available context
+              });
+              break; // Success without max_tokens limit
+            } catch (retryError: any) {
+              // If still fails, input itself is too long - try next model
+              if (model === models[models.length - 1]) {
+                throw new Error(`Context length exceeded: Input messages are too long for all available models. Please reduce message length.`);
+              }
+              continue;
+            }
+          } else {
+            // Input itself exceeds context window - try next model
             if (model === models[models.length - 1]) {
-              throw new Error(`Context length exceeded for all models. Please reduce message length.`);
+              throw new Error(`Context length exceeded: Input messages are too long for all available models. Please reduce message length.`);
             }
             continue;
           }
