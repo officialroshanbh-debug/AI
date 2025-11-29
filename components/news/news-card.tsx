@@ -1,5 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Clock, ExternalLink, Heart, MoreHorizontal } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -16,10 +17,8 @@ export function NewsCard({ item, className }: NewsCardProps) {
         : item.publishedAt;
 
     return (
-        <a
-            href={item.link}
-            target="_blank"
-            rel="noopener noreferrer"
+        <Link
+            href={`/discover/${item.id}`}
             className={cn(
                 "group relative flex flex-col overflow-hidden rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:bg-white/10 hover:shadow-lg dark:border-white/5 dark:bg-black/20 dark:hover:bg-white/5",
                 className
@@ -27,11 +26,16 @@ export function NewsCard({ item, className }: NewsCardProps) {
         >
             {/* Header: Source & Options */}
             <div className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
                         {item.source.substring(0, 1)}
                     </div>
                     <span className="text-xs font-medium text-muted-foreground">{item.source}</span>
+                    {item.category && (
+                        <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded">
+                            {item.category}
+                        </span>
+                    )}
                 </div>
                 <button 
                     className="text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
@@ -90,9 +94,17 @@ export function NewsCard({ item, className }: NewsCardProps) {
                     >
                         <Heart className="h-4 w-4" />
                     </button>
-                    <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <a
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-white/10 hover:text-primary"
+                    >
+                        <ExternalLink className="h-4 w-4" />
+                    </a>
                 </div>
             </div>
-        </a>
+        </Link>
     );
 }

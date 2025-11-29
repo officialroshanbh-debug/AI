@@ -3,7 +3,8 @@ export interface NewsSource {
   name: string;
   url: string;
   rssUrl?: string;
-  category?: string;
+  category?: 'general' | 'tech' | 'finance' | 'sports' | 'entertainment' | 'science' | 'politics';
+  country?: 'nepal' | 'india' | 'international';
 }
 
 export const NEPAL_NEWS_SOURCES: NewsSource[] = [
@@ -78,8 +79,16 @@ export const NEPAL_NEWS_SOURCES: NewsSource[] = [
     name: 'Nepal Samacharpatra',
     url: 'https://www.samacharpatra.com',
     rssUrl: 'https://www.samacharpatra.com/rss',
+    category: 'general',
+    country: 'nepal',
   },
 ];
+
+// Add category and country to existing sources
+NEPAL_NEWS_SOURCES.forEach((source) => {
+  if (!source.category) source.category = 'general';
+  if (!source.country) source.country = 'nepal';
+});
 
 export interface NewsItem {
   id: string;
@@ -90,5 +99,9 @@ export interface NewsItem {
   sourceUrl: string;
   publishedAt: Date;
   imageUrl?: string;
+  category?: 'general' | 'tech' | 'finance' | 'sports' | 'entertainment' | 'science' | 'politics';
+  country?: 'nepal' | 'india' | 'international';
+  summary?: string; // AI-generated summary
+  fullContent?: string; // Full article content if fetched
 }
 

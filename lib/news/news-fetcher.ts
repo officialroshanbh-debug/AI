@@ -1,4 +1,6 @@
 import { NEPAL_NEWS_SOURCES, type NewsItem, type NewsSource } from './nepal-news-sources';
+import { INTERNATIONAL_NEWS_SOURCES } from './international-news-sources';
+import { INDIA_NEWS_SOURCES } from './india-news-sources';
 
 // Create a simple hash for IDs (works in Edge and Node.js)
 function createHash(str: string): string {
@@ -110,6 +112,9 @@ function parseRSSFeed(xmlText: string, source: NewsSource): NewsItem[] {
             // Create a unique ID using hash function
             const linkHash = createHash(link);
             
+            // Detect category from title and description if not set
+            const detectedCategory = detectCategory(title, description, source.category);
+            
             items.push({
               id: `${source.id}-${linkHash}`,
               title,
@@ -119,6 +124,8 @@ function parseRSSFeed(xmlText: string, source: NewsSource): NewsItem[] {
               sourceUrl: source.url,
               publishedAt: pubDate,
               imageUrl,
+              category: detectedCategory,
+              country: source.country,
             });
           }
         }
@@ -134,6 +141,104 @@ function parseRSSFeed(xmlText: string, source: NewsSource): NewsItem[] {
   return items;
 }
 
+// Category detection based on keywords
+function detectCategory(
+  title: string,
+  description: string | undefined,
+  sourceCategory?: string
+): NewsItem['category'] {
+  // If source has a category, use it
+  if (sourceCategory && ['tech', 'finance', 'sports', 'entertainment', 'science', 'politics'].includes(sourceCategory)) {
+    return sourceCategory as NewsItem['category'];
+  }
+
+  const text = `${title} ${description || ''}`.toLowerCase();
+
+  // Tech keywords
+  if (
+    /\b(tech|technology|ai|artificial intelligence|software|app|digital|computer|internet|cyber|startup|innovation|gadget|iphone|android|google|apple|microsoft|meta|facebook|twitter|x|amazon|tesla|spacex|nvidia|chip|semiconductor|blockchain|crypto|bitcoin|web3|vr|ar|metaverse)\b/i.test(text)
+  ) {
+    return 'tech';
+  }
+
+  // Finance keywords
+  if (
+    /\b(finance|financial|economy|economic|stock|market|trading|investment|bank|currency|dollar|rupee|inflation|recession|gdp|bitcoin|crypto|bitcoin|ethereum|stock market|wall street|dow jones|nasdaq)\b/i.test(text)
+  ) {
+    return 'finance';
+  }
+
+  // Sports keywords
+  if (
+    /\b(sport|football|soccer|basketball|cricket|tennis|olympic|world cup|championship|match|game|player|team|league|premier league|nfl|nba|fifa)\b/i.test(text)
+  ) {
+    return 'sports';
+  }
+
+  // Entertainment keywords
+  if (
+    /\b(movie|film|actor|actress|celebrity|hollywood|bollywood|music|song|album|concert|award|oscar|grammy|entertainment|tv show|series|netflix|disney)\b/i.test(text)
+  ) {
+    return 'entertainment';
+  }
+
+  // Science keywords
+  if (
+    /\b(science|scientific|research|study|discovery|space|nasa|planet|earth|climate|environment|health|medical|disease|vaccine|research|experiment|lab|scientist)\b/i.test(text)
+  ) {
+    return 'science';
+  }
+
+  // Politics keywords
+  if (
+    /\b(politics|political|government|president|prime minister|minister|election|vote|parliament|congress|senate|democracy|republican|democrat|policy|law|bill)\b/i.test(text)
+  ) {
+    return 'politics';
+  }
+
+  return 'general';
+}
+
+// Fetch all news from all sources
+export async function fetchAllNews(limit: number = 50): Promise<NewsItem[]> {
+  const allNews: NewsItem[] = [];
+
+  // Combine all sources
+  const allSources = [
+    ...NEPAL_NEWS_SOURCES,
+    ...INTERNATIONAL_NEWS_SOURCES,
+    ...INDIA_NEWS_SOURCES,
+  ];
+
+  // Fetch from all sources in parallel (with rate limiting consideration)
+  const promises = allSources.map((source) => fetchNewsFromRSS(source));
+  const results = await Promise.allSettled(promises);
+
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      allNews.push(...result.value);
+    }
+  }
+
+  // Sort by published date (newest first)
+  allNews.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
+
+  // Remove duplicates based on title similarity
+  const uniqueNews = removeDuplicates(allNews);
+
+  return uniqueNews.slice(0, limit);
+}
+
+// Fetch news by category
+export async function fetchNewsByCategory(
+  category: NewsItem['category'],
+  limit: number = 20
+): Promise<NewsItem[]> {
+  const allNews = await fetchAllNews(100);
+  return allNews.filter((item) => item.category === category).slice(0, limit);
+}
+
+// Legacy function for backward compatibility
 export async function fetchAllNepalNews(limit: number = 20): Promise<NewsItem[]> {
   const allNews: NewsItem[] = [];
 

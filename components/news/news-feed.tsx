@@ -8,16 +8,20 @@ import { Button } from '@/components/ui/button';
 import type { NewsItem } from '@/lib/news/nepal-news-sources';
 
 const TABS = [
-    { id: 'foryou', label: 'For You', icon: Compass },
-    { id: 'top', label: 'Top', icon: Flame },
-    { id: 'tech', label: 'Tech & Science', icon: Layers },
-    { id: 'finance', label: 'Finance', icon: TrendingUp },
-    { id: 'arts', label: 'Arts & Culture', icon: Newspaper },
+    { id: 'foryou', label: 'For You', icon: Compass, category: null },
+    { id: 'top', label: 'Top', icon: Flame, category: null },
+    { id: 'tech', label: 'Tech & Science', icon: Layers, category: 'tech' as const },
+    { id: 'finance', label: 'Finance', icon: TrendingUp, category: 'finance' as const },
+    { id: 'sports', label: 'Sports', icon: Newspaper, category: 'sports' as const },
+    { id: 'entertainment', label: 'Entertainment', icon: Newspaper, category: 'entertainment' as const },
+    { id: 'science', label: 'Science', icon: Layers, category: 'science' as const },
+    { id: 'politics', label: 'Politics', icon: Newspaper, category: 'politics' as const },
 ];
 
 export function NewsFeed() {
     const [activeTab, setActiveTab] = useState('foryou');
-    const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
+    const [allNews, setAllNews] = useState<NewsItem[]>([]);
+    const [newsByCategory, setNewsByCategory] = useState<Record<string, NewsItem[]>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -31,7 +35,8 @@ export function NewsFeed() {
         try {
             const response = await fetch('/api/news');
             const data = await response.json();
-            setNewsItems(data.news || []);
+            setAllNews(data.news || []);
+            setNewsByCategory(data.newsByCategory || {});
         } catch (error) {
             console.error('Error fetching news:', error);
         } finally {
@@ -39,6 +44,26 @@ export function NewsFeed() {
             setIsRefreshing(false);
         }
     };
+
+    // Get filtered news based on active tab
+    const getFilteredNews = (): NewsItem[] => {
+        const tab = TABS.find(t => t.id === activeTab);
+        if (!tab) return allNews;
+        
+        if (tab.category) {
+            return newsByCategory[tab.category] || [];
+        }
+        
+        if (activeTab === 'top') {
+            // Show top news (most recent)
+            return allNews.slice(0, 30);
+        }
+        
+        // For You - show mix of all categories
+        return allNews;
+    };
+
+    const newsItems = getFilteredNews();
 
     useEffect(() => {
         fetchNews();

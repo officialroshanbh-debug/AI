@@ -14,7 +14,7 @@ export default function DiscoverPage() {
                         </div>
                         <div>
                             <h1 className="text-3xl font-serif font-medium tracking-tight">Discover</h1>
-                            <p className="text-sm text-muted-foreground">Latest news from Nepal</p>
+                            <p className="text-sm text-muted-foreground">Latest news from around the world</p>
                         </div>
                     </div>
 
