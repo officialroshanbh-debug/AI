@@ -62,34 +62,77 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: '/auth/signin',
   },
   callbacks: {
-    async signIn({ user, account, profile }) {
-      // Allow OAuth sign-ins - the adapter will handle account linking
-      if (account?.provider === 'google' || account?.provider === 'github') {
+    async signIn({ user, account, profile, email }) {
+      try {
+        // Allow OAuth sign-ins - the adapter will handle account linking
+        if (account?.provider === 'google' || account?.provider === 'github') {
+          // Ensure we have the required user data
+          if (!user?.email) {
+            console.error('[Auth] OAuth sign-in missing email:', { user, account });
+            return false;
+          }
+          return true;
+        }
+        // For credentials, user is already validated
         return true;
+      } catch (error) {
+        console.error('[Auth] SignIn callback error:', error);
+        return false;
       }
-      // For credentials, user is already validated
-      return true;
     },
-    async jwt({ token, user, account }) {
-      // When user signs in, store their ID in the token
-      if (user) {
-        token.id = user.id;
+    async jwt({ token, user, account, trigger }) {
+      try {
+        // When user signs in, store their ID in the token
+        if (user) {
+          token.id = user.id;
+          token.email = user.email;
+        }
+        // Ensure token.id persists across requests
+        return token;
+      } catch (error) {
+        console.error('[Auth] JWT callback error:', error);
+        return token;
       }
-      // Ensure token.id persists across requests
-      return token;
     },
     async session({ session, token }) {
-      // Ensure session.user exists and has the ID from token
-      if (session.user && token.id) {
-        session.user.id = token.id as string;
+      try {
+        // Ensure session.user exists and has the ID from token
+        if (session.user && token.id) {
+          session.user.id = token.id as string;
+        }
+        return session;
+      } catch (error) {
+        console.error('[Auth] Session callback error:', error);
+        return session;
       }
-      return session;
     },
     async redirect({ url, baseUrl }) {
-      // Ensure redirects stay within the same origin
-      if (url.startsWith('/')) return `${baseUrl}${url}`;
-      if (new URL(url).origin === baseUrl) return url;
-      return baseUrl;
+      try {
+        // Ensure redirects stay within the same origin
+        if (url.startsWith('/')) return `${baseUrl}${url}`;
+        if (new URL(url).origin === baseUrl) return url;
+        return baseUrl;
+      } catch (error) {
+        console.error('[Auth] Redirect callback error:', error);
+        return baseUrl;
+      }
+    },
+  },
+  events: {
+    async signIn({ user, account, isNewUser }) {
+      // Log successful sign-ins for debugging
+      if (account?.provider === 'google' || account?.provider === 'github') {
+        console.log('[Auth] OAuth sign-in successful:', {
+          provider: account.provider,
+          userId: user.id,
+          email: user.email,
+          isNewUser,
+        });
+      }
+    },
+    async signInError({ error }) {
+      // Log sign-in errors
+      console.error('[Auth] Sign-in error:', error);
     },
   },
 });
