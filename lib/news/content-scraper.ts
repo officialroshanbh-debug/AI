@@ -71,62 +71,96 @@ export async function scrapeArticleContent(url: string): Promise<ScrapedContent 
 }
 
 function extractArticleContent(html: string, url: string): string {
-  // Remove scripts and styles
+  // Remove scripts, styles, and other non-content elements
   let cleanHtml = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
   cleanHtml = cleanHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
   cleanHtml = cleanHtml.replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '');
+  cleanHtml = cleanHtml.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '');
+  cleanHtml = cleanHtml.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '');
+  cleanHtml = cleanHtml.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '');
+  cleanHtml = cleanHtml.replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, '');
 
-  // Try common article selectors
-  const selectors = [
-    'article',
-    '[role="article"]',
-    '.article-content',
-    '.article-body',
-    '.post-content',
-    '.entry-content',
-    '.content',
-    '.story-body',
-    '.article-text',
-    'main article',
-    '#article-content',
-    '#article-body',
+  // Try to find article content using multiple strategies
+  const strategies = [
+    // Strategy 1: Look for <article> tag
+    () => {
+      const articleMatch = cleanHtml.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
+      if (articleMatch) {
+        return extractTextFromHtml(articleMatch[1]);
+      }
+      return null;
+    },
+    // Strategy 2: Look for common article class names
+    () => {
+      const classPatterns = [
+        /<div[^>]*class=["'][^"']*article[^"']*["'][^>]*>([\s\S]*?)<\/div>/gi,
+        /<div[^>]*class=["'][^"']*content[^"']*["'][^>]*>([\s\S]*?)<\/div>/gi,
+        /<div[^>]*class=["'][^"']*post[^"']*["'][^>]*>([\s\S]*?)<\/div>/gi,
+        /<div[^>]*class=["'][^"']*story[^"']*["'][^>]*>([\s\S]*?)<\/div>/gi,
+      ];
+      
+      for (const pattern of classPatterns) {
+        const matches = [...cleanHtml.matchAll(pattern)];
+        for (const match of matches) {
+          const text = extractTextFromHtml(match[1]);
+          if (text.length > 500) {
+            return text;
+          }
+        }
+      }
+      return null;
+    },
+    // Strategy 3: Extract all paragraphs and find the longest continuous block
+    () => {
+      const paragraphs = cleanHtml.match(/<p[^>]*>(.*?)<\/p>/gis);
+      if (paragraphs && paragraphs.length > 3) {
+        const text = paragraphs
+          .map(p => extractTextFromHtml(p))
+          .filter(p => p.length > 50 && !p.match(/^(advertisement|subscribe|follow us|share this)/i))
+          .join('\n\n')
+          .trim();
+        if (text.length > 500) {
+          return text;
+        }
+      }
+      return null;
+    },
+    // Strategy 4: Extract text from main content area
+    () => {
+      const mainMatch = cleanHtml.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+      if (mainMatch) {
+        return extractTextFromHtml(mainMatch[1]);
+      }
+      return null;
+    },
   ];
 
-  for (const selector of selectors) {
-    // Simple regex-based extraction (for server-side, we'd use a proper HTML parser in production)
-    const pattern = new RegExp(`<${selector.replace(/[.#\[\]]/g, (m) => {
-      if (m === '.') return '[^>]*class=["\'][^"\']*';
-      if (m === '#') return '[^>]*id=["\']';
-      return m;
-    })}(?:[^>]*>)([\\s\\S]*?)<\\/${selector.split(/[.#\[\]]/)[0]}>`, 'i');
-    
-    const match = html.match(pattern);
-    if (match && match[1]) {
-      const text = match[1]
-        .replace(/<[^>]*>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-      if (text.length > 200) {
-        return text;
-      }
-    }
-  }
-
-  // Fallback: extract all paragraph text
-  const paragraphs = html.match(/<p[^>]*>(.*?)<\/p>/gis);
-  if (paragraphs) {
-    const text = paragraphs
-      .map(p => p.replace(/<[^>]*>/g, ' ').trim())
-      .filter(p => p.length > 50)
-      .join(' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    if (text.length > 200) {
-      return text;
+  for (const strategy of strategies) {
+    const content = strategy();
+    if (content && content.length > 500) {
+      return content;
     }
   }
 
   return '';
+}
+
+function extractTextFromHtml(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, ' ') // Remove all HTML tags
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#8217;/g, "'")
+    .replace(/&#8220;/g, '"')
+    .replace(/&#8221;/g, '"')
+    .replace(/&#8211;/g, '-')
+    .replace(/&#8212;/g, '--')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function cleanContent(content: string): string {
