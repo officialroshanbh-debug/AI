@@ -88,9 +88,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // Test database connection before allowing sign-in
           try {
             await prisma.$queryRaw`SELECT 1`;
+            console.log('[Auth] Database connection verified');
           } catch (dbError) {
-            console.error('[Auth] Database connection error during OAuth sign-in:', dbError);
-            // Still allow sign-in - the adapter will handle it or fail gracefully
+            console.error('[Auth] Database connection error during OAuth sign-in:', {
+              message: dbError instanceof Error ? dbError.message : String(dbError),
+              stack: dbError instanceof Error ? dbError.stack : undefined,
+            });
+            // If database is not available, we can't create/link accounts
+            // But we can still allow sign-in and handle it in the adapter
           }
           
           // Log for debugging
