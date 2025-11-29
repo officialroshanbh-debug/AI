@@ -9,11 +9,18 @@ export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   try {
-    // In NextAuth v5, auth() should work without passing request, but let's ensure it gets headers
+    // In NextAuth v5, auth() should automatically read from request context
+    // But we need to ensure cookies are being sent
     const session = await auth();
     
     if (!session) {
-      console.error('[Chat API] No session found');
+      // Log for debugging - check if cookies are present
+      const cookieHeader = req.headers.get('cookie');
+      console.error('[Chat API] No session found', {
+        hasCookieHeader: !!cookieHeader,
+        cookieHeader: cookieHeader ? 'present' : 'missing',
+        allHeaders: Object.fromEntries(req.headers.entries()),
+      });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
