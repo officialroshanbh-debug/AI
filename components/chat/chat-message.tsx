@@ -46,7 +46,7 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
         isUser ? 'bg-background' : 'bg-muted/20'
       )}
     >
-      <div className="mx-auto flex max-w-4xl gap-4 px-4">
+      <div className="mx-auto flex max-w-4xl gap-2 md:gap-4 px-3 md:px-4">
         {/* Avatar */}
         <motion.div
           initial={{ scale: 0 }}
