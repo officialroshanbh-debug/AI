@@ -75,6 +75,7 @@ export function ChatContainer({
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Ensure cookies are sent with the request
         body: JSON.stringify({
           messages: newMessages,
           modelId: currentModel,
