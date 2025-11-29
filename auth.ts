@@ -2,8 +2,6 @@ import NextAuth from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@/lib/prisma';
 import Google from 'next-auth/providers/google';
-import Credentials from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
 
 if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
   console.error('[Auth] CRITICAL: AUTH_SECRET or NEXTAUTH_SECRET is not set! This will cause authentication failures.');
@@ -32,65 +30,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           access_type: 'offline',
           response_type: 'code',
         },
-      },
-    }),
-    Credentials({
-      name: 'Credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
-        try {
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email as string },
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              image: true,
-              password: true,
-            },
-          });
-
-          if (!user) {
-            return null;
-          }
-
-          // Handle case where password column might not exist yet
-          if (!user.password) {
-            console.warn('[Auth] User found but password column is missing or null');
-            return null;
-          }
-
-          const isValid = await bcrypt.compare(
-            credentials.password as string,
-            user.password
-          );
-
-          if (!isValid) {
-            return null;
-          }
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            image: user.image,
-          };
-        } catch (error) {
-          // Handle Prisma schema mismatch errors gracefully
-          if (error && typeof error === 'object' && 'code' in error && error.code === 'P2022') {
-            console.error('[Auth] Database schema mismatch - password column missing');
-            return null;
-          }
-          console.error('[Auth] Credentials authorize error:', error);
-          return null;
-        }
       },
     }),
   ],
