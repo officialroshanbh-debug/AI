@@ -81,20 +81,35 @@ export async function POST(req: NextRequest) {
 
     // Get or create chat
     let chat;
-    if (chatId) {
-      chat = await prisma.chat.findUnique({
-        where: { id: chatId, userId },
-      });
-    }
+    try {
+      if (chatId) {
+        chat = await prisma.chat.findUnique({
+          where: { id: chatId, userId },
+        });
+      }
 
-    if (!chat) {
-      chat = await prisma.chat.create({
-        data: {
-          userId,
-          title: messages[messages.length - 1]?.content?.slice(0, 50) || 'New Chat',
-          modelId: model,
-        },
-      });
+      if (!chat) {
+        chat = await prisma.chat.create({
+          data: {
+            userId,
+            title: messages[messages.length - 1]?.content?.slice(0, 50) || 'New Chat',
+            modelId: model,
+          },
+        });
+      }
+    } catch (error) {
+      // Check if it's a table not found error
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'P2021') {
+        console.error('[Chat API] Database schema error - tables not found. Please run migrations.');
+        return NextResponse.json(
+          { 
+            error: 'Database not initialized',
+            message: 'The database tables have not been created. Please ensure migrations have run.'
+          },
+          { status: 500 }
+        );
+      }
+      throw error;
     }
 
     // Prepare user message save (but don't await yet - start streaming first)
