@@ -12,11 +12,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: 'jwt',
   },
+  debug: true, // Enable debug logs for troubleshooting
   pages: {
     signIn: '/auth/signin',
-    error: '/auth/signin', // Redirect to sign-in page on error
+    // error: '/auth/signin', // Commented out to see actual error page
   },
-
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
@@ -114,12 +114,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         console.error('[Auth] Session Callback Error:', error);
         return session;
       }
-    },
-    async redirect({ url, baseUrl }) {
-      // Ensure redirects stay within the same origin
-      if (url.startsWith('/')) return `${baseUrl}${url}`;
-      if (new URL(url).origin === baseUrl) return url;
-      return baseUrl;
     },
   },
   events: {
