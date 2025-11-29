@@ -78,6 +78,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         maxAge: 900, // 15 minutes
       },
     },
+    nonce: {
+      name: process.env.NODE_ENV === 'production'
+        ? '__Secure-next-auth.nonce'
+        : 'next-auth.nonce',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
   },
   providers: [
     Google({
