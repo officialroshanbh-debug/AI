@@ -70,7 +70,7 @@ export async function scrapeArticleContent(url: string): Promise<ScrapedContent 
   }
 }
 
-function extractArticleContent(html: string, url: string): string {
+function extractArticleContent(html: string, _url: string): string {
   // Remove scripts, styles, and other non-content elements
   let cleanHtml = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
   cleanHtml = cleanHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');

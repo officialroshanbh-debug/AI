@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { ArrowLeft, ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatRelativeTime } from '@/lib/utils';
@@ -128,10 +129,12 @@ export default function NewsDetailPage() {
           {/* Image */}
           {newsItem.imageUrl && (
             <div className="relative w-full h-64 md:h-96 mb-6 rounded-lg overflow-hidden">
-              <img
+              <Image
                 src={newsItem.imageUrl}
                 alt={newsItem.title}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                unoptimized
               />
             </div>
           )}
