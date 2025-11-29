@@ -58,6 +58,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return session;
       }
     },
+    async redirect({ url, baseUrl }) {
+      // Ensure redirects stay within the same origin
+      console.log('[Auth] Redirect callback:', { url, baseUrl });
+      if (url.startsWith('/')) {
+        const redirectUrl = `${baseUrl}${url}`;
+        console.log('[Auth] Redirecting to:', redirectUrl);
+        return redirectUrl;
+      }
+      if (new URL(url).origin === baseUrl) {
+        console.log('[Auth] Redirecting to:', url);
+        return url;
+      }
+      console.log('[Auth] Redirecting to baseUrl:', baseUrl);
+      return baseUrl;
+    },
   },
   events: {
     async signIn({ user, account }) {
@@ -65,6 +80,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         userId: user.id,
         email: user.email,
         provider: account?.provider,
+      });
+    },
+    async createUser({ user }) {
+      console.log('[Auth] New user created:', {
+        userId: user.id,
+        email: user.email,
+      });
+    },
+    async linkAccount({ user, account }) {
+      console.log('[Auth] Account linked:', {
+        userId: user.id,
+        provider: account.provider,
+        providerAccountId: account.providerAccountId,
       });
     },
   },

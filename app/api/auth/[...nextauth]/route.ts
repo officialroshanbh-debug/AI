@@ -8,6 +8,14 @@ async function handleRequest(
 ): Promise<Response> {
   try {
     const response = await handler(req);
+    // Log successful responses for debugging
+    if (req.url.includes('/callback')) {
+      console.log('[Auth Route] Callback response:', {
+        status: response.status,
+        url: req.url,
+        headers: Object.fromEntries(response.headers.entries()),
+      });
+    }
     return response;
   } catch (error) {
     console.error('[Auth Route] Error:', {
