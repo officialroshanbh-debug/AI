@@ -130,10 +130,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         });
       }
     },
-    async signInError({ error }) {
-      // Log sign-in errors
-      console.error('[Auth] Sign-in error:', error);
-    },
   },
 });
 
