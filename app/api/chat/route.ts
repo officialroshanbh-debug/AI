@@ -108,6 +108,19 @@ export async function POST(req: NextRequest) {
       ? Math.min(maxTokens, actualModelLimit)
       : actualModelLimit;
 
+    // Debug logging for token limits
+    if (config.provider === 'openai') {
+      const actualModelName = OPENAI_MODEL_MAP[model] || 'gpt-4o';
+      console.log('[Chat API] Model token limits:', {
+        modelId: model,
+        actualModelName,
+        configMaxTokens: config.maxTokens,
+        actualModelLimit,
+        requestedMaxTokens: maxTokens,
+        finalMaxTokens,
+      });
+    }
+
     // Get or create chat
     let chat;
     try {
