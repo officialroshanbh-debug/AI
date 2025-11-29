@@ -25,6 +25,13 @@ export async function fetchNewsFromRSS(source: NewsSource): Promise<NewsItem[]> 
     });
 
     if (!response.ok) {
+      // Silently skip sources that return 404 or other errors
+      // This prevents one broken feed from affecting others
+      if (response.status === 404) {
+        // Source may have removed RSS feed - skip silently
+        return [];
+      }
+      // For other errors, log but don't throw
       console.warn(`Failed to fetch RSS from ${source.name}: ${response.status}`);
       return [];
     }

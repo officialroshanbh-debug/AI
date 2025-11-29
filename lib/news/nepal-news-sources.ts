@@ -53,7 +53,7 @@ export const NEPAL_NEWS_SOURCES: NewsSource[] = [
     id: 'myrepublica',
     name: 'My Republica',
     url: 'https://myrepublica.nagariknetwork.com',
-    rssUrl: 'https://myrepublica.nagariknetwork.com/rss',
+    rssUrl: 'https://myrepublica.nagariknetwork.com/feed',
   },
   {
     id: 'nepalnews',
