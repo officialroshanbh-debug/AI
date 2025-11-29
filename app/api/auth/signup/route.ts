@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 // Signup is only available via Google OAuth
-export async function POST(req: NextRequest) {
+export async function POST() {
   return NextResponse.json(
     { 
       error: 'Email/password signup is not available',
