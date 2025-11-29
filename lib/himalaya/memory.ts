@@ -9,7 +9,7 @@ export interface MemoryEntry {
 
 export async function getHimalayaMemory(
   userId: string,
-  chatId: string,
+  _chatId: string,
   currentMessages: Message[]
 ): Promise<MemoryEntry[]> {
   try {

@@ -119,6 +119,7 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
                 components={{
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   code({ node: _node, className, children, ...props }: any) {
                     const match = /language-(\w+)/.exec(className || '');
                     const codeString = String(children).replace(/\n$/, '');
@@ -172,6 +173,7 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
                       </code>
                     );
                   },
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   a({ node: _node, children, ...props }: any) {
                     return (
                       <a
@@ -184,6 +186,7 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
                       </a>
                     );
                   },
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   table({ node: _node, children, ...props }: any) {
                     return (
                       <div className="my-4 overflow-x-auto rounded-lg border border-border">
@@ -193,6 +196,7 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
                       </div>
                     );
                   },
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   blockquote({ node: _node, children, ...props }: any) {
                     return (
                       <blockquote
