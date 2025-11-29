@@ -4,6 +4,7 @@ import { rateLimiter } from '@/lib/rate-limit';
 import { prisma } from '@/lib/prisma';
 import { MODEL_CONFIGS, type ModelId } from '@/types/ai-models';
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { z } from 'zod';
 
 export const maxDuration = 300;
@@ -24,17 +25,25 @@ const chatRequestSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    // Authentication - auth() automatically reads from request context in NextAuth v5
+    // Authentication - in NextAuth v5, auth() reads from cookies() automatically
+    // But we need to ensure cookies are available in the request context
     const session = await auth();
     
     if (!session?.user) {
       const cookieHeader = req.headers.get('cookie');
-      const allCookies = req.cookies.getAll();
+      const cookieStore = await cookies();
+      const sessionTokenName = process.env.NODE_ENV === 'production' 
+        ? '__Secure-next-auth.session-token'
+        : 'next-auth.session-token';
+      const sessionToken = cookieStore.get(sessionTokenName);
+      const allCookies = cookieStore.getAll();
+      
       console.error('[Chat API] No session found', {
         hasCookieHeader: !!cookieHeader,
         cookieCount: allCookies.length,
         cookieNames: allCookies.map((c) => c.name),
-        cookieValues: allCookies.map((c) => c.name + '=' + (c.value ? 'present' : 'missing')),
+        hasSessionToken: !!sessionToken,
+        sessionTokenName,
       });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
