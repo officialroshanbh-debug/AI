@@ -14,7 +14,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: 'jwt',
   },
-  debug: true, // Enable debug logs for troubleshooting
+  debug: process.env.NODE_ENV === 'development', // Enable debug logs in dev
   pages: {
     signIn: '/auth/signin',
     // error: '/auth/signin', // Commented out to see actual error page

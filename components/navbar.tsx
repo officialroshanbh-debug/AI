@@ -29,6 +29,9 @@ export function Navbar() {
               <Link href="/chat">
                 <Button variant="ghost">Chat</Button>
               </Link>
+              <Link href="/discover">
+                <Button variant="ghost">Discover</Button>
+              </Link>
               <Link href="/settings">
                 <Button variant="ghost" size="icon">
                   <Settings className="h-4 w-4" />

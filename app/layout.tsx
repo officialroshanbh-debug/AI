@@ -1,32 +1,7 @@
-import type { Metadata } from 'next';
-import { Inter, Geist, Geist_Mono } from 'next/font/google';
-import './globals.css';
-import { Providers } from '@/components/providers';
-import { Navbar } from '@/components/navbar';
-import { ErrorBoundary } from '@/components/error-boundary';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-});
-
-const geistSans = Geist({
-  subsets: ['latin'],
-  variable: '--font-geist-sans',
-  display: 'swap',
-});
-
-const geistMono = Geist_Mono({
-  subsets: ['latin'],
-  variable: '--font-geist-mono',
-  display: 'swap',
-});
-
-export const metadata: Metadata = {
-  title: 'AI Platform - Universal AI Chat',
-  description: 'Multi-model AI chat platform with advanced learning capabilities',
-};
+// ... existing imports
 
 export default function RootLayout({
   children,
@@ -40,6 +15,8 @@ export default function RootLayout({
           <Providers>
             <Navbar />
             {children}
+            <Analytics />
+            <SpeedInsights />
           </Providers>
         </ErrorBoundary>
       </body>
