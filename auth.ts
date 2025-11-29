@@ -81,9 +81,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (account?.provider === 'google' || account?.provider === 'github') {
           // Ensure we have the required user data
           if (!user?.email) {
-            console.error('[Auth] OAuth sign-in missing email:', { user, account });
+            console.error('[Auth] OAuth sign-in missing email:', { user, account, profile });
             return false;
           }
+          // Log for debugging
+          console.log('[Auth] Allowing OAuth sign-in:', {
+            provider: account.provider,
+            email: user.email,
+            hasAccount: !!account,
+          });
           return true;
         }
         // For credentials, user is already validated
