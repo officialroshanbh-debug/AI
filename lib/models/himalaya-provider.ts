@@ -83,10 +83,12 @@ export class HimalayaProvider implements AIModelProvider {
       response.content = expanded;
     }
 
-    // Store memory for future use
+    // Store memory for future use - await to ensure it completes
     if (params.userId && params.chatId) {
-      this.storeMemory(response.content, params.userId, params.chatId).catch(
-        console.error
+      await this.storeMemory(response.content, params.userId, params.chatId).catch(
+        (error) => {
+          console.error('Error storing Himalaya memory:', error);
+        }
       );
     }
 
@@ -112,25 +114,33 @@ export class HimalayaProvider implements AIModelProvider {
     const openaiProvider = new OpenAIProvider();
 
     let fullContent = '';
+    let memoryPromise: Promise<void> | null = null;
 
-    for await (const chunk of openaiProvider.streamModel({
-      ...params,
-      messages: enhancedMessages,
-      model: 'gpt-4o',
-      maxTokens: params.maxTokens ?? 10000,
-      temperature: params.temperature ?? 0.6,
-    })) {
-      if (chunk.content) {
-        fullContent += chunk.content;
+    try {
+      for await (const chunk of openaiProvider.streamModel({
+        ...params,
+        messages: enhancedMessages,
+        model: 'gpt-4o',
+        maxTokens: params.maxTokens ?? 10000,
+        temperature: params.temperature ?? 0.6,
+      })) {
+        if (chunk.content) {
+          fullContent += chunk.content;
+        }
+        yield chunk;
       }
-      yield chunk;
-    }
 
-    // Store memory after streaming completes
-    if (params.userId && params.chatId && fullContent) {
-      this.storeMemory(fullContent, params.userId, params.chatId).catch(
-        console.error
-      );
+      // Store memory after streaming completes - track the promise
+      if (params.userId && params.chatId && fullContent) {
+        memoryPromise = this.storeMemory(fullContent, params.userId, params.chatId);
+      }
+    } finally {
+      // Ensure memory is stored even if stream errors
+      if (memoryPromise) {
+        await memoryPromise.catch((error) => {
+          console.error('Error storing Himalaya memory after stream:', error);
+        });
+      }
     }
   }
 

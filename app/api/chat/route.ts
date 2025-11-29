@@ -4,32 +4,37 @@ import { rateLimiter } from '@/lib/rate-limit';
 import { prisma } from '@/lib/prisma';
 import { MODEL_CONFIGS, type ModelId } from '@/types/ai-models';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 export const maxDuration = 300;
 
+// Zod schema for request validation
+const chatRequestSchema = z.object({
+  messages: z.array(
+    z.object({
+      role: z.enum(['user', 'assistant', 'system']),
+      content: z.string(),
+    })
+  ).min(1),
+  modelId: z.string().optional(),
+  chatId: z.string().optional(),
+  temperature: z.number().min(0).max(2).optional(),
+  maxTokens: z.number().positive().optional(),
+});
+
 export async function POST(req: NextRequest) {
   try {
-    // In NextAuth v5, auth() should automatically read from request context
-    // But we need to ensure cookies are being sent
+    // Authentication
     const session = await auth();
     
-    if (!session) {
-      // Log for debugging - check if cookies are present
+    if (!session?.user) {
       const cookieHeader = req.headers.get('cookie');
       console.error('[Chat API] No session found', {
         hasCookieHeader: !!cookieHeader,
-        cookieHeader: cookieHeader ? 'present' : 'missing',
-        allHeaders: Object.fromEntries(req.headers.entries()),
       });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    if (!session.user) {
-      console.error('[Chat API] No user in session', { session });
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    // Get user ID from session
     const userId = (session.user as { id?: string }).id;
     if (!userId) {
       console.error('[Chat API] No user ID in session', { user: session.user });
@@ -37,18 +42,23 @@ export async function POST(req: NextRequest) {
     }
 
     // Rate limiting
-    const identifier = userId;
-    const { success } = await rateLimiter.limit(identifier);
+    const { success } = await rateLimiter.limit(userId);
     if (!success) {
       return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
     }
 
+    // Validate request body with Zod
     const body = await req.json();
-    const { messages, modelId, chatId, temperature, maxTokens } = body;
-
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return NextResponse.json({ error: 'Invalid messages' }, { status: 400 });
+    const validationResult = chatRequestSchema.safeParse(body);
+    
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid request', details: validationResult.error.errors },
+        { status: 400 }
+      );
     }
+
+    const { messages, modelId, chatId, temperature, maxTokens } = validationResult.data;
 
     const model = (modelId || 'gpt-4.1') as ModelId;
     const config = MODEL_CONFIGS[model];
@@ -60,50 +70,55 @@ export async function POST(req: NextRequest) {
     let chat;
     if (chatId) {
       chat = await prisma.chat.findUnique({
-        where: { id: chatId, userId: userId as string },
+        where: { id: chatId, userId },
       });
     }
 
     if (!chat) {
       chat = await prisma.chat.create({
         data: {
-          userId: userId as string,
+          userId,
           title: messages[messages.length - 1]?.content?.slice(0, 50) || 'New Chat',
           modelId: model,
         },
       });
     }
 
-    // Save user message
+    // Prepare user message save (but don't await yet - start streaming first)
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage.role === 'user') {
-      await prisma.message.create({
-        data: {
-          chatId: chat.id,
-          role: 'user',
-          content: lastMessage.content,
-          modelId: model,
-        },
-      });
-    }
+    const userMessagePromise = lastMessage.role === 'user'
+      ? prisma.message.create({
+          data: {
+            chatId: chat.id,
+            role: 'user',
+            content: lastMessage.content,
+            modelId: model,
+          },
+        })
+      : Promise.resolve(null);
 
-    // Get provider and stream response
+    // Get provider and start streaming immediately (don't wait for user message save)
     const provider = modelRouter.getProvider(model);
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
         let fullContent = '';
+        let dbWritePromises: Promise<unknown>[] = [];
 
         try {
+          // Start user message save in parallel (don't block on it)
+          dbWritePromises.push(userMessagePromise);
+
+          // Start streaming immediately
           for await (const chunk of provider.streamModel({
-            messages: messages.map((m: { role: string; content: string }) => ({
+            messages: messages.map((m) => ({
               role: m.role as 'user' | 'assistant' | 'system',
               content: m.content,
             })),
             model,
             temperature: temperature ?? config.defaultTemperature,
             maxTokens: maxTokens ?? config.maxTokens,
-            userId: userId as string,
+            userId,
             chatId: chat.id,
           })) {
             if (chunk.content) {
@@ -114,25 +129,27 @@ export async function POST(req: NextRequest) {
             }
 
             if (chunk.done) {
-              // Save assistant message
-              await prisma.message.create({
+              // Prepare database writes but don't await yet
+              const assistantMessagePromise = prisma.message.create({
                 data: {
                   chatId: chat.id,
                   role: 'assistant',
                   content: fullContent,
                   modelId: model,
-                  tokens: fullContent.length / 4, // Rough estimate
+                  tokens: Math.ceil(fullContent.length / 4),
                 },
               });
 
-              // Log usage
-              await prisma.usageLog.create({
+              const usageLogPromise = prisma.usageLog.create({
                 data: {
-                  userId: userId as string,
+                  userId,
                   modelId: model,
                   tokens: Math.ceil(fullContent.length / 4),
                 },
               });
+
+              // Track promises to ensure they complete
+              dbWritePromises.push(assistantMessagePromise, usageLogPromise);
 
               controller.enqueue(encoder.encode('data: [DONE]\n\n'));
               controller.close();
@@ -141,6 +158,14 @@ export async function POST(req: NextRequest) {
         } catch (error) {
           console.error('Streaming error:', error);
           controller.error(error);
+        } finally {
+          // Ensure all database writes complete even if client disconnects
+          try {
+            await Promise.allSettled(dbWritePromises);
+          } catch (dbError) {
+            console.error('Error completing database writes:', dbError);
+            // Don't throw - we've already sent the response
+          }
         }
       },
     });
