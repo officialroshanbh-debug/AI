@@ -84,11 +84,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             console.error('[Auth] OAuth sign-in missing email:', { user, account, profile });
             return false;
           }
+          
+          // Test database connection before allowing sign-in
+          try {
+            await prisma.$queryRaw`SELECT 1`;
+          } catch (dbError) {
+            console.error('[Auth] Database connection error during OAuth sign-in:', dbError);
+            // Still allow sign-in - the adapter will handle it or fail gracefully
+          }
+          
           // Log for debugging
           console.log('[Auth] Allowing OAuth sign-in:', {
             provider: account.provider,
             email: user.email,
             hasAccount: !!account,
+            userId: user.id,
           });
           return true;
         }
@@ -96,6 +106,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return true;
       } catch (error) {
         console.error('[Auth] SignIn callback error:', error);
+        // Log full error details
+        if (error instanceof Error) {
+          console.error('[Auth] SignIn error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+          });
+        }
         return false;
       }
     },
