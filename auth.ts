@@ -6,9 +6,22 @@ import GitHub from 'next-auth/providers/github';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 
+// Create adapter with error handling
+// Note: Adapter is only used for account linking during OAuth, not for sessions (we use JWT)
+let adapter;
+try {
+  adapter = PrismaAdapter(prisma);
+  console.log('[Auth] PrismaAdapter created successfully');
+} catch (error) {
+  console.error('[Auth] Failed to create PrismaAdapter:', error);
+  // Don't throw - we can still use JWT sessions without adapter
+  // Adapter is only needed for OAuth account linking
+  adapter = undefined;
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
-  adapter: PrismaAdapter(prisma),
+  adapter: adapter || undefined, // Only use adapter if it was created successfully
   trustHost: true, // Required for Vercel deployments - allows NextAuth to trust the host
   cookies: {
     pkceCodeVerifier: {
