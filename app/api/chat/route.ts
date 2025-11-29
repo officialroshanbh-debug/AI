@@ -14,24 +14,7 @@ const OPENAI_MODEL_MAP: Record<string, string[]> = {
   'o3-mini': ['gpt-3.5-turbo-0125', 'gpt-3.5-turbo-1106', 'gpt-3.5-turbo'],
 };
 
-const OPENAI_MODEL_LIMITS: Record<string, number> = {
-  'gpt-4': 8192,
-  'gpt-4o': 16384,
-  'gpt-4-turbo': 128000,
-  'gpt-4-turbo-preview': 8192,
-  'gpt-3.5-turbo-0125': 16385,
-  'gpt-3.5-turbo-1106': 16385,
-  'gpt-3.5-turbo': 4096,
-};
-
-function getActualModelLimit(modelId: ModelId, config: { provider: string; maxTokens: number }): number {
-  if (config.provider === 'openai') {
-    const models = OPENAI_MODEL_MAP[modelId] || ['gpt-4'];
-    const actualModelName = models[0]; // Use first (preferred) model for limit calculation
-    return OPENAI_MODEL_LIMITS[actualModelName] || config.maxTokens;
-  }
-  return config.maxTokens;
-}
+// Removed token limit capping - provider handles limits dynamically based on context window
 
 export const maxDuration = 300;
 
@@ -105,24 +88,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid model' }, { status: 400 });
     }
 
-    // Get the actual API limit for this model (important for OpenAI models that map to different API models)
-    const actualModelLimit = getActualModelLimit(model, config);
-
-    // Ensure maxTokens doesn't exceed model's actual API limit
-    const finalMaxTokens = maxTokens 
-      ? Math.min(maxTokens, actualModelLimit)
-      : actualModelLimit;
+    // Don't cap maxTokens - let the provider handle it dynamically
+    // The provider will calculate available tokens based on input messages
+    const finalMaxTokens = maxTokens || undefined; // Pass through if provided, otherwise let provider decide
 
     // Debug logging for token limits
     if (config.provider === 'openai') {
-      const actualModelName = OPENAI_MODEL_MAP[model] || 'gpt-4o';
-      console.log('[Chat API] Model token limits:', {
+      const actualModelName = OPENAI_MODEL_MAP[model]?.[0] || 'gpt-4';
+      console.log('[Chat API] Model token configuration:', {
         modelId: model,
         actualModelName,
-        configMaxTokens: config.maxTokens,
-        actualModelLimit,
         requestedMaxTokens: maxTokens,
-        finalMaxTokens,
+        finalMaxTokens: finalMaxTokens || 'auto (calculated by provider)',
       });
     }
 

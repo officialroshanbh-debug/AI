@@ -17,16 +17,39 @@ const MODEL_MAP: Record<string, string[]> = {
   'o3-mini': ['gpt-3.5-turbo-0125', 'gpt-3.5-turbo-1106', 'gpt-3.5-turbo'],
 };
 
-// Model-specific max token limits (actual API limits)
-const MODEL_MAX_TOKENS: Record<string, number> = {
+// Model context window sizes (total tokens including input + output)
+const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
   'gpt-4': 8192,
-  'gpt-4o': 16384,
+  'gpt-4o': 128000,
   'gpt-4-turbo': 128000,
   'gpt-4-turbo-preview': 8192,
   'gpt-3.5-turbo-0125': 16385,
   'gpt-3.5-turbo-1106': 16385,
-  'gpt-3.5-turbo': 4096,
+  'gpt-3.5-turbo': 16385,
 };
+
+// Simple token estimation: ~4 characters per token (rough estimate)
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+// Calculate available tokens for output based on input messages
+function calculateAvailableTokens(model: string, messages: Array<{ role: string; content: string }>): number {
+  const contextWindow = MODEL_CONTEXT_WINDOWS[model] || 8192;
+  
+  // Estimate input tokens
+  const inputTokens = messages.reduce((sum, msg) => {
+    // Each message has overhead (role, formatting) ~4 tokens + content
+    return sum + 4 + estimateTokens(msg.content);
+  }, 0);
+  
+  // Reserve 10% buffer and calculate available output tokens
+  const buffer = Math.ceil(contextWindow * 0.1);
+  const available = contextWindow - inputTokens - buffer;
+  
+  // Return at least 100 tokens, or available if more
+  return Math.max(100, available);
+}
 
 export class OpenAIProvider implements AIModelProvider {
   id = 'openai';
@@ -67,11 +90,12 @@ export class OpenAIProvider implements AIModelProvider {
     }));
 
     const response = await this.tryModelWithFallback(models, async (model) => {
-      // Cap max_tokens to the model's actual limit
-      const modelMaxTokens = MODEL_MAX_TOKENS[model] || 4096;
-      const maxTokens = params.maxTokens 
-        ? Math.min(params.maxTokens, modelMaxTokens)
-        : modelMaxTokens;
+      // Calculate available tokens dynamically based on input
+      const availableTokens = calculateAvailableTokens(model, messages);
+      
+      // Use requested maxTokens if provided, otherwise use available tokens
+      // Don't cap it - let the API handle validation
+      const maxTokens = params.maxTokens || availableTokens;
 
       return await openai.chat.completions.create({
         model,
@@ -102,11 +126,12 @@ export class OpenAIProvider implements AIModelProvider {
     // Try models with fallback
     for (const model of models) {
       try {
-        // Cap max_tokens to the model's actual limit
-        const modelMaxTokens = MODEL_MAX_TOKENS[model] || 4096;
-        const maxTokens = params.maxTokens 
-          ? Math.min(params.maxTokens, modelMaxTokens)
-          : modelMaxTokens;
+        // Calculate available tokens dynamically based on input
+        const availableTokens = calculateAvailableTokens(model, messages);
+        
+        // Use requested maxTokens if provided, otherwise use available tokens
+        // Don't cap it - let the API handle validation
+        const maxTokens = params.maxTokens || availableTokens;
 
         stream = await openai.chat.completions.create({
           model,
@@ -125,6 +150,30 @@ export class OpenAIProvider implements AIModelProvider {
             throw new Error(`None of the available models (${models.join(', ')}) are accessible. Please check your OpenAI API key permissions.`);
           }
           continue;
+        }
+        // Handle context_length_exceeded by reducing max_tokens
+        if (error?.code === 'context_length_exceeded') {
+          console.warn(`[OpenAI] Context length exceeded for ${model}, reducing max_tokens...`);
+          // Try with reduced tokens (50% of available)
+          const availableTokens = calculateAvailableTokens(model, messages);
+          const reducedTokens = Math.floor(availableTokens * 0.5);
+          
+          try {
+            stream = await openai.chat.completions.create({
+              model,
+              messages,
+              temperature: params.temperature ?? 0.7,
+              max_tokens: reducedTokens,
+              stream: true,
+            });
+            break; // Success with reduced tokens
+          } catch (retryError: any) {
+            // If still fails, try next model
+            if (model === models[models.length - 1]) {
+              throw new Error(`Context length exceeded for all models. Please reduce message length.`);
+            }
+            continue;
+          }
         }
         // For other errors, throw immediately
         throw error;
