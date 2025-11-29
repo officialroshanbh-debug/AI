@@ -72,29 +72,52 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-        });
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email as string },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              image: true,
+              password: true,
+            },
+          });
 
-        if (!user || !user.password) {
+          if (!user) {
+            return null;
+          }
+
+          // Handle case where password column might not exist yet
+          if (!user.password) {
+            console.warn('[Auth] User found but password column is missing or null');
+            return null;
+          }
+
+          const isValid = await bcrypt.compare(
+            credentials.password as string,
+            user.password
+          );
+
+          if (!isValid) {
+            return null;
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+          };
+        } catch (error) {
+          // Handle Prisma schema mismatch errors gracefully
+          if (error && typeof error === 'object' && 'code' in error && error.code === 'P2022') {
+            console.error('[Auth] Database schema mismatch - password column missing');
+            return null;
+          }
+          console.error('[Auth] Credentials authorize error:', error);
           return null;
         }
-
-        const isValid = await bcrypt.compare(
-          credentials.password as string,
-          user.password
-        );
-
-        if (!isValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-        };
       },
     }),
   ],
@@ -117,6 +140,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (url.startsWith('/')) return `${baseUrl}${url}`;
       if (new URL(url).origin === baseUrl) return url;
       return baseUrl;
+    },
+  },
+  events: {
+    async signIn({ user, account }) {
+      console.log('[Auth] Sign in successful', {
+        userId: user.id,
+        email: user.email,
+        provider: account?.provider,
+      });
     },
   },
 });
