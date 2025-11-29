@@ -10,13 +10,14 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const category = searchParams.get('category') as NewsItem['category'] | null;
     const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const maxDaysOld = parseInt(searchParams.get('maxDaysOld') || '4', 10);
 
     let news: NewsItem[];
     
     if (category && ['tech', 'finance', 'sports', 'entertainment', 'science', 'politics', 'general'].includes(category)) {
-      news = await fetchNewsByCategory(category, limit);
+      news = await fetchNewsByCategory(category, limit, maxDaysOld);
     } else {
-      news = await fetchAllNews(limit);
+      news = await fetchAllNews(limit, maxDaysOld);
     }
 
     // Group by category for easier frontend consumption

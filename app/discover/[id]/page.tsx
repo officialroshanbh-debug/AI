@@ -16,17 +16,18 @@ export default function NewsDetailPage() {
   const [isSummarizing, setIsSummarizing] = useState(false);
 
   useEffect(() => {
-    // Fetch news item from API
+    // Fetch news item with full content from API
     const fetchNews = async () => {
       try {
-        const response = await fetch('/api/news');
+        const response = await fetch(`/api/news/${params.id}`);
         const data = await response.json();
-        const item = data.news?.find((n: NewsItem) => n.id === params.id);
-        if (item) {
-          setNewsItem(item);
-          // Try to get summary if available
-          if (item.summary) {
-            setSummary(item.summary);
+        if (data.newsItem) {
+          setNewsItem(data.newsItem);
+          // Use full content as summary if available, or existing summary
+          if (data.newsItem.fullContent) {
+            setSummary(data.newsItem.fullContent.slice(0, 500) + '...');
+          } else if (data.newsItem.summary) {
+            setSummary(data.newsItem.summary);
           }
         }
       } catch (error) {
@@ -135,38 +136,55 @@ export default function NewsDetailPage() {
             </div>
           )}
 
-          {/* Summary Section */}
-          <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-            {summary ? (
-              <div>
-                <h2 className="text-lg font-semibold mb-2">Summary</h2>
-                <p className="text-muted-foreground">{summary}</p>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold mb-1">AI Summary</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Get an AI-generated summary of this article
-                  </p>
+          {/* Full Content Section */}
+          {newsItem.fullContent ? (
+            <div className="mb-6">
+              <h2 className="text-2xl font-semibold mb-4">Article Content</h2>
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <div className="text-foreground leading-relaxed whitespace-pre-wrap">
+                  {newsItem.fullContent.split('\n').map((paragraph, idx) => (
+                    paragraph.trim() && (
+                      <p key={idx} className="mb-4 text-base">
+                        {paragraph.trim()}
+                      </p>
+                    )
+                  ))}
                 </div>
-                <Button
-                  onClick={handleSummarize}
-                  disabled={isSummarizing}
-                  size="sm"
-                >
-                  {isSummarizing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Summarizing...
-                    </>
-                  ) : (
-                    'Generate Summary'
-                  )}
-                </Button>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="mb-6 p-4 bg-muted/50 rounded-lg">
+              {summary ? (
+                <div>
+                  <h2 className="text-lg font-semibold mb-2">Summary</h2>
+                  <p className="text-muted-foreground">{summary}</p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold mb-1">AI Summary</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Get an AI-generated summary of this article
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleSummarize}
+                    disabled={isSummarizing}
+                    size="sm"
+                  >
+                    {isSummarizing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Summarizing...
+                      </>
+                    ) : (
+                      'Generate Summary'
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-4 pt-6 border-t">

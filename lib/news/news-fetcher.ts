@@ -199,8 +199,24 @@ function detectCategory(
   return 'general';
 }
 
+// Filter news by date (only last N days)
+function filterRecentNews(news: NewsItem[], days: number = 4): NewsItem[] {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+  cutoffDate.setHours(0, 0, 0, 0);
+
+  return news.filter((item) => {
+    const publishedDate = typeof item.publishedAt === 'string' 
+      ? new Date(item.publishedAt) 
+      : item.publishedAt;
+    
+    // Only include news from the last N days
+    return publishedDate >= cutoffDate;
+  });
+}
+
 // Fetch all news from all sources
-export async function fetchAllNews(limit: number = 50): Promise<NewsItem[]> {
+export async function fetchAllNews(limit: number = 50, maxDaysOld: number = 4): Promise<NewsItem[]> {
   const allNews: NewsItem[] = [];
 
   // Combine all sources
@@ -220,11 +236,18 @@ export async function fetchAllNews(limit: number = 50): Promise<NewsItem[]> {
     }
   }
 
+  // Filter to only recent news (last N days)
+  const recentNews = filterRecentNews(allNews, maxDaysOld);
+
   // Sort by published date (newest first)
-  allNews.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
+  recentNews.sort((a, b) => {
+    const dateA = typeof a.publishedAt === 'string' ? new Date(a.publishedAt) : a.publishedAt;
+    const dateB = typeof b.publishedAt === 'string' ? new Date(b.publishedAt) : b.publishedAt;
+    return dateB.getTime() - dateA.getTime();
+  });
 
   // Remove duplicates based on title similarity
-  const uniqueNews = removeDuplicates(allNews);
+  const uniqueNews = removeDuplicates(recentNews);
 
   return uniqueNews.slice(0, limit);
 }
@@ -232,9 +255,10 @@ export async function fetchAllNews(limit: number = 50): Promise<NewsItem[]> {
 // Fetch news by category
 export async function fetchNewsByCategory(
   category: NewsItem['category'],
-  limit: number = 20
+  limit: number = 20,
+  maxDaysOld: number = 4
 ): Promise<NewsItem[]> {
-  const allNews = await fetchAllNews(100);
+  const allNews = await fetchAllNews(100, maxDaysOld);
   return allNews.filter((item) => item.category === category).slice(0, limit);
 }
 
