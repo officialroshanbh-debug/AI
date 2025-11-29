@@ -68,19 +68,20 @@ export class OpenAIProvider implements AIModelProvider {
   name = 'OpenAI';
   supportsStreaming = true;
 
-  private async tryModelWithFallback(
+  private async tryModelWithFallback<T>(
     models: string[],
-    createRequest: (model: string) => Promise<any>
-  ): Promise<any> {
+    createRequest: (model: string) => Promise<T>
+  ): Promise<T> {
     let lastError: Error | null = null;
     
     for (const model of models) {
       try {
         return await createRequest(model);
-      } catch (error: any) {
-        lastError = error;
+      } catch (error: unknown) {
+        const err = error as { code?: string; status?: number; message?: string };
+        lastError = error instanceof Error ? error : new Error(String(error));
         // If it's a model_not_found error, try next model
-        if (error?.code === 'model_not_found' || error?.status === 403) {
+        if (err?.code === 'model_not_found' || err?.status === 403) {
           console.warn(`[OpenAI] Model ${model} not available, trying next...`);
           continue;
         }
@@ -137,7 +138,7 @@ export class OpenAIProvider implements AIModelProvider {
       content: msg.content,
     }));
 
-    let stream: any;
+    let stream: Awaited<ReturnType<typeof openai.chat.completions.create>> | null = null;
 
     // Try models with fallback
     for (const model of models) {
@@ -161,9 +162,10 @@ export class OpenAIProvider implements AIModelProvider {
 
         stream = await openai.chat.completions.create(requestParams);
         break; // Success, exit loop
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const err = error as { code?: string; status?: number; message?: string };
         // If it's a model_not_found error, try next model
-        if (error?.code === 'model_not_found' || error?.status === 403) {
+        if (err?.code === 'model_not_found' || err?.status === 403) {
           console.warn(`[OpenAI] Model ${model} not available, trying next...`);
           if (model === models[models.length - 1]) {
             // Last model failed, throw error
@@ -173,7 +175,7 @@ export class OpenAIProvider implements AIModelProvider {
         }
         // Handle context_length_exceeded error
         // This means input + max_tokens exceeds context window
-        if (error?.code === 'context_length_exceeded') {
+        if (err?.code === 'context_length_exceeded') {
           console.warn(`[OpenAI] Context length exceeded for ${model}`);
           
           // If max_tokens was set, try without it (let OpenAI decide)
@@ -187,7 +189,7 @@ export class OpenAIProvider implements AIModelProvider {
                 // Don't set max_tokens - let OpenAI use available context
               });
               break; // Success without max_tokens limit
-            } catch (retryError: any) {
+            } catch {
               // If still fails, input itself is too long - try next model
               if (model === models[models.length - 1]) {
                 throw new Error(`Context length exceeded: Input messages are too long for all available models. Please reduce message length.`);
