@@ -16,44 +16,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: '/auth/signin',
     error: '/auth/signin', // Redirect to sign-in page on error
   },
-  cookies: {
-    sessionToken: {
-      name: process.env.NODE_ENV === 'production' 
-        ? '__Secure-next-auth.session-token'
-        : 'next-auth.session-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-      },
-    },
-    pkceCodeVerifier: {
-      name: process.env.NODE_ENV === 'production'
-        ? '__Secure-next-auth.pkce.code_verifier'
-        : 'next-auth.pkce.code_verifier',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 15, // 15 minutes
-      },
-    },
-    state: {
-      name: process.env.NODE_ENV === 'production'
-        ? '__Secure-next-auth.state'
-        : 'next-auth.state',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 15, // 15 minutes
-      },
-    },
-  },
+
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
@@ -128,18 +91,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.email = user.email;
+    async jwt({ token, user, account }) {
+      try {
+        if (user) {
+          token.id = user.id;
+          token.email = user.email;
+          console.log('[Auth] JWT Callback - User signed in:', { userId: user.id, email: user.email });
+        }
+        return token;
+      } catch (error) {
+        console.error('[Auth] JWT Callback Error:', error);
+        return token;
       }
-      return token;
     },
     async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id as string;
+      try {
+        if (token && session.user) {
+          session.user.id = token.id as string;
+        }
+        return session;
+      } catch (error) {
+        console.error('[Auth] Session Callback Error:', error);
+        return session;
       }
-      return session;
     },
     async redirect({ url, baseUrl }) {
       // Ensure redirects stay within the same origin
