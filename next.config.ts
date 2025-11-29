@@ -23,8 +23,6 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Enable React strict mode
   reactStrictMode: true,
-  // Optimize fonts
-  optimizeFonts: true,
   // Bundle analyzer (enable with ANALYZE=true)
   ...(process.env.ANALYZE === 'true' && {
     webpack: (config: any) => {

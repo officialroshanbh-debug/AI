@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         const encoder = new TextEncoder();
         let fullContent = '';
-        let dbWritePromises: Promise<unknown>[] = [];
+        const dbWritePromises: Promise<unknown>[] = [];
 
         try {
           // Start user message save in parallel (don't block on it)
