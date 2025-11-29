@@ -1,8 +1,6 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // Exclude test files from build
-  pageExtensions: ['ts', 'tsx', 'js', 'jsx'].filter((ext) => ext !== 'test.ts' && ext !== 'test.tsx'),
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',

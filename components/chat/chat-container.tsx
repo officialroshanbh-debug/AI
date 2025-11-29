@@ -4,10 +4,9 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { ChatMessage } from './chat-message';
 import { ChatInput } from './chat-input';
 import { ModelSelector } from './model-selector';
-import { NewsSidebar } from '@/components/news/news-sidebar';
 import { ChatSkeleton } from './chat-skeleton';
 import { Button } from '@/components/ui/button';
-import { Newspaper, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import type { Message, ModelId } from '@/types/ai-models';
 import { MODEL_IDS } from '@/types/ai-models';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
@@ -25,7 +24,6 @@ export function ChatContainer({
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [currentModel, setCurrentModel] = useState<ModelId>(initialModel);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [showNewsSidebar, setShowNewsSidebar] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -37,12 +35,6 @@ export function ChatContainer({
     scrollToBottom();
   }, [messages]);
 
-  useEffect(() => {
-    const handleCloseSidebar = () => setShowNewsSidebar(false);
-    window.addEventListener('close-news-sidebar', handleCloseSidebar);
-    return () => window.removeEventListener('close-news-sidebar', handleCloseSidebar);
-  }, []);
-
   // Keyboard shortcuts
   useKeyboardShortcuts([
     {
@@ -52,14 +44,6 @@ export function ChatContainer({
         inputRef.current?.focus();
       },
       description: 'Focus input',
-    },
-    {
-      key: 'b',
-      metaKey: true,
-      handler: () => {
-        setShowNewsSidebar((prev) => !prev);
-      },
-      description: 'Toggle sidebar',
     },
   ]);
 
@@ -206,38 +190,11 @@ export function ChatContainer({
 
   return (
     <div className="flex h-screen relative">
-      {/* News Sidebar - Desktop */}
-      <div className="hidden lg:block w-80 shrink-0">
-        <NewsSidebar />
-      </div>
-
-      {/* News Sidebar - Mobile (Overlay) */}
-      {showNewsSidebar && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-            onClick={() => setShowNewsSidebar(false)}
-          />
-          <div className="fixed left-0 top-0 h-full w-80 z-50 lg:hidden">
-            <NewsSidebar />
-          </div>
-        </>
-      )}
-
       {/* Chat Container */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="border-b bg-background/80 backdrop-blur-sm p-4 sticky top-0 z-10">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="lg:hidden"
-                onClick={() => setShowNewsSidebar(!showNewsSidebar)}
-                aria-label="Toggle news sidebar"
-              >
-                <Newspaper className="h-5 w-5" aria-hidden="true" />
-              </Button>
               <h1 className="text-xl font-semibold">AI Chat</h1>
             </div>
             <div className="flex items-center gap-2">
@@ -280,7 +237,6 @@ export function ChatContainer({
                   <div className="text-xs text-muted-foreground mt-8 space-y-1">
                     <p>Keyboard shortcuts:</p>
                     <p>⌘K - Focus input</p>
-                    <p>⌘B - Toggle sidebar</p>
                   </div>
                 </div>
               </div>

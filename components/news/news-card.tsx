@@ -1,8 +1,9 @@
 import React from 'react';
 import Image from 'next/image';
 import { Clock, ExternalLink, Heart, MoreHorizontal } from 'lucide-react';
-import { NewsItem, NEWS_SOURCES } from '@/lib/news-sources';
+import { formatRelativeTime } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import type { NewsItem } from '@/lib/news/nepal-news-sources';
 
 interface NewsCardProps {
     item: NewsItem;
@@ -10,32 +11,32 @@ interface NewsCardProps {
 }
 
 export function NewsCard({ item, className }: NewsCardProps) {
-    const source = NEWS_SOURCES.find((s) => s.id === item.sourceId);
+    const publishedDate = typeof item.publishedAt === 'string' 
+        ? new Date(item.publishedAt) 
+        : item.publishedAt;
 
     return (
-        <div className={cn(
-            "group relative flex flex-col overflow-hidden rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:bg-white/10 hover:shadow-lg dark:border-white/5 dark:bg-black/20 dark:hover:bg-white/5",
-            className
-        )}>
+        <a
+            href={item.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+                "group relative flex flex-col overflow-hidden rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:bg-white/10 hover:shadow-lg dark:border-white/5 dark:bg-black/20 dark:hover:bg-white/5",
+                className
+            )}
+        >
             {/* Header: Source & Options */}
             <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    {source?.logo ? (
-                        <Image
-                            src={source.logo}
-                            alt={source.name}
-                            width={20}
-                            height={20}
-                            className="rounded-full"
-                        />
-                    ) : (
-                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
-                            {source?.name.substring(0, 1)}
-                        </div>
-                    )}
-                    <span className="text-xs font-medium text-muted-foreground">{source?.name}</span>
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                        {item.source.substring(0, 1)}
+                    </div>
+                    <span className="text-xs font-medium text-muted-foreground">{item.source}</span>
                 </div>
-                <button className="text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100">
+                <button 
+                    className="text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                    onClick={(e) => e.preventDefault()}
+                >
                     <MoreHorizontal className="h-4 w-4" />
                 </button>
             </div>
@@ -48,21 +49,18 @@ export function NewsCard({ item, className }: NewsCardProps) {
                         <h3 className="line-clamp-2 text-lg font-semibold leading-tight tracking-tight text-foreground group-hover:text-primary transition-colors">
                             {item.title}
                         </h3>
-                        <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
-                            {item.summary}
-                        </p>
+                        {item.description && (
+                            <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
+                                {item.description}
+                            </p>
+                        )}
                     </div>
 
                     <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            <span>{getTimeAgo(new Date(item.publishedAt))}</span>
+                            <span>{formatRelativeTime(publishedDate)}</span>
                         </div>
-                        {item.topics.map((topic) => (
-                            <span key={topic} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-secondary-foreground">
-                                {topic}
-                            </span>
-                        ))}
                     </div>
                 </div>
 
@@ -74,6 +72,7 @@ export function NewsCard({ item, className }: NewsCardProps) {
                             alt={item.title}
                             fill
                             className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            unoptimized
                         />
                     </div>
                 )}
@@ -85,35 +84,15 @@ export function NewsCard({ item, className }: NewsCardProps) {
                     {/* Placeholder for related sources count if we had it */}
                 </div>
                 <div className="flex items-center gap-2">
-                    <button className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-white/10 hover:text-red-500">
+                    <button 
+                        className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-white/10 hover:text-red-500"
+                        onClick={(e) => e.preventDefault()}
+                    >
                         <Heart className="h-4 w-4" />
                     </button>
-                    <button className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-white/10 hover:text-primary">
-                        <ExternalLink className="h-4 w-4" />
-                    </button>
+                    <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
             </div>
-        </div>
+        </a>
     );
-}
-
-function getTimeAgo(date: Date): string {
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + " years ago";
-
-    interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + " months ago";
-
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + " days ago";
-
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + " hours ago";
-
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + " minutes ago";
-
-    return Math.floor(seconds) + " seconds ago";
 }
