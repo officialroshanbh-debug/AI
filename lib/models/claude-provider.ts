@@ -130,7 +130,7 @@ export class ClaudeProvider implements AIModelProvider {
                 yield { content: '', done: true };
                 return;
               }
-            } catch (e) {
+            } catch (_e) {
               // Skip invalid JSON
             }
           }

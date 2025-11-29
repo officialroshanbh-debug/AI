@@ -183,7 +183,7 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
                       </a>
                     );
                   },
-                  table({ node, children, ...props }) {
+                  table({ node: _node, children, ...props }) {
                     return (
                       <div className="my-4 overflow-x-auto rounded-lg border border-border">
                         <table className="w-full" {...props}>
@@ -192,7 +192,7 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
                       </div>
                     );
                   },
-                  blockquote({ node, children, ...props }) {
+                  blockquote({ node: _node, children, ...props }) {
                     return (
                       <blockquote
                         className="glass my-4 border-l-4 border-primary pl-4"

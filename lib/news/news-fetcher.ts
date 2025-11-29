@@ -22,14 +22,6 @@ interface RSSItem {
   };
 }
 
-interface RSSFeed {
-  rss?: {
-    channel?: {
-      item?: RSSItem[];
-    };
-  };
-}
-
 export async function fetchNewsFromRSS(source: NewsSource): Promise<NewsItem[]> {
   if (!source.rssUrl) {
     return [];
@@ -132,7 +124,7 @@ function parseRSSFeed(xmlText: string, source: NewsSource): NewsItem[] {
             });
           }
         }
-      } catch (itemError) {
+      } catch (_itemError) {
         // Skip invalid items
         continue;
       }
