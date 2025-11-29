@@ -45,6 +45,20 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 });
     }
+    
+    // Check if it's a Prisma schema mismatch error
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2022') {
+      console.error('Signup error: Database schema mismatch. The password column is missing.');
+      console.error('Please ensure the database schema is synced by running: npx prisma db push');
+      return NextResponse.json(
+        { 
+          error: 'Database configuration error. Please contact support.',
+          details: 'The database schema is out of sync. This should be fixed automatically on the next deployment.'
+        },
+        { status: 500 }
+      );
+    }
+    
     console.error('Signup error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
