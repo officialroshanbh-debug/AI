@@ -102,7 +102,7 @@ export class OpenAIProvider implements AIModelProvider {
       content: msg.content,
     }));
 
-    const response = await this.tryModelWithFallback(models, async (model) => {
+    const response = await this.tryModelWithFallback<ChatCompletion>(models, async (model) => {
       // According to OpenAI docs: max_tokens is optional
       // Only set it if explicitly requested, and validate against context window
       const maxTokens = calculateSafeMaxTokens(model, messages, params.maxTokens);
@@ -112,6 +112,7 @@ export class OpenAIProvider implements AIModelProvider {
         model,
         messages,
         temperature: params.temperature ?? 0.7,
+        stream: false, // Explicitly set to false for non-streaming
       };
 
       // Only add max_tokens if it was requested (following OpenAI best practices)
@@ -119,7 +120,7 @@ export class OpenAIProvider implements AIModelProvider {
         requestParams.max_tokens = maxTokens;
       }
 
-      return await openai.chat.completions.create(requestParams);
+      return await openai.chat.completions.create(requestParams) as Promise<ChatCompletion>;
     });
 
     const choice = response.choices[0];
@@ -160,7 +161,7 @@ export class OpenAIProvider implements AIModelProvider {
           requestParams.max_tokens = maxTokens;
         }
 
-        stream = await openai.chat.completions.create(requestParams);
+        stream = await openai.chat.completions.create(requestParams) as ChatCompletionStream;
         break; // Success, exit loop
       } catch (error: unknown) {
         const err = error as { code?: string; status?: number; message?: string };
@@ -187,7 +188,7 @@ export class OpenAIProvider implements AIModelProvider {
                 temperature: params.temperature ?? 0.7,
                 stream: true,
                 // Don't set max_tokens - let OpenAI use available context
-              });
+              }) as ChatCompletionStream;
               break; // Success without max_tokens limit
             } catch {
               // If still fails, input itself is too long - try next model
