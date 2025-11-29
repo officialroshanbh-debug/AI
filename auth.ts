@@ -62,6 +62,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: '/auth/signin',
   },
   callbacks: {
+    async signIn({ user, account, profile }) {
+      // Allow OAuth sign-ins - the adapter will handle account linking
+      if (account?.provider === 'google' || account?.provider === 'github') {
+        return true;
+      }
+      // For credentials, user is already validated
+      return true;
+    },
     async jwt({ token, user, account }) {
       // When user signs in, store their ID in the token
       if (user) {

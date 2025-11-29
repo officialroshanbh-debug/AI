@@ -10,5 +10,10 @@ export const prisma =
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
 
+// Handle Prisma connection errors gracefully
+prisma.$connect().catch((error) => {
+  console.error('[Prisma] Connection error:', error);
+});
+
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
