@@ -87,7 +87,7 @@ export function ChatContainer({
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let assistantMessage: Message = { role: 'assistant', content: '' };
+      const assistantMessage: Message = { role: 'assistant', content: '' };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -110,7 +110,7 @@ export function ChatContainer({
                 assistantMessage.content += parsed.content;
                 setMessages([...newMessages, assistantMessage]);
               }
-            } catch (e) {
+            } catch {
               // Skip invalid JSON
             }
           }

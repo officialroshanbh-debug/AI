@@ -11,17 +11,6 @@ function createHash(str: string): string {
   return Math.abs(hash).toString(36).slice(0, 20);
 }
 
-interface RSSItem {
-  title: string;
-  description?: string;
-  link: string;
-  pubDate?: string;
-  'content:encoded'?: string;
-  enclosure?: {
-    '@_url'?: string;
-  };
-}
-
 export async function fetchNewsFromRSS(source: NewsSource): Promise<NewsItem[]> {
   if (!source.rssUrl) {
     return [];
@@ -124,7 +113,7 @@ function parseRSSFeed(xmlText: string, source: NewsSource): NewsItem[] {
             });
           }
         }
-      } catch (_itemError) {
+      } catch {
         // Skip invalid items
         continue;
       }

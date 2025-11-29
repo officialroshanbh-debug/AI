@@ -119,7 +119,7 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
                 components={{
-                  code({ node, inline, className, children, ...props }) {
+                  code({ node: _node, inline, className, children, ...props }) {
                     const match = /language-(\w+)/.exec(className || '');
                     const codeString = String(children).replace(/\n$/, '');
 
@@ -171,7 +171,7 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
                       </code>
                     );
                   },
-                  a({ node, children, ...props }) {
+                  a({ node: _node, children, ...props }) {
                     return (
                       <a
                         className="font-medium text-primary underline decoration-primary/30 underline-offset-4 transition-colors hover:decoration-primary"

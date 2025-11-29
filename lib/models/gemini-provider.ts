@@ -127,7 +127,7 @@ export class GeminiProvider implements AIModelProvider {
                   finishReason: json.candidates?.[0]?.finishReason,
                 };
               }
-            } catch (_e) {
+            } catch {
               // Skip invalid JSON
             }
           }
