@@ -2,7 +2,6 @@ import NextAuth from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@/lib/prisma';
 import Google from 'next-auth/providers/google';
-import GitHub from 'next-auth/providers/github';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 
@@ -15,6 +14,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   pages: {
     signIn: '/auth/signin',
+    error: '/auth/signin', // Redirect to sign-in page on error
   },
   cookies: {
     sessionToken: {
@@ -30,7 +30,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     },
     pkceCodeVerifier: {
-      name: 'next-auth.pkce.code_verifier',
+      name: process.env.NODE_ENV === 'production'
+        ? '__Secure-next-auth.pkce.code_verifier'
+        : 'next-auth.pkce.code_verifier',
       options: {
         httpOnly: true,
         sameSite: 'lax',
@@ -40,7 +42,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     },
     state: {
-      name: 'next-auth.state',
+      name: process.env.NODE_ENV === 'production'
+        ? '__Secure-next-auth.state'
+        : 'next-auth.state',
       options: {
         httpOnly: true,
         sameSite: 'lax',
@@ -52,14 +56,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   providers: [
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
       allowDangerousEmailAccountLinking: true,
-    }),
-    GitHub({
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      allowDangerousEmailAccountLinking: true,
+      authorization: {
+        params: {
+          prompt: 'consent',
+          access_type: 'offline',
+          response_type: 'code',
+        },
+      },
     }),
     Credentials({
       name: 'Credentials',
