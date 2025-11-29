@@ -9,18 +9,7 @@ import bcrypt from 'bcryptjs';
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   adapter: PrismaAdapter(prisma),
-  trustHost: true, // Required for Vercel deployments
-  cookies: {
-    sessionToken: {
-      name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-      },
-    },
-  },
+  trustHost: true, // Required for Vercel deployments - allows NextAuth to trust the host
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
