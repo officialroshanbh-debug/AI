@@ -2,24 +2,33 @@ import { handlers } from '@/auth';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-// Wrap handlers with error handling
+// Wrap handlers with comprehensive error handling
 async function handleRequest(
   handler: (req: NextRequest) => Promise<Response>,
   req: NextRequest
 ) {
   try {
-    return await handler(req);
+    const response = await handler(req);
+    return response;
   } catch (error) {
-    console.error('[Auth Route] Error:', error);
-    // Log full error details for debugging
-    if (error instanceof Error) {
-      console.error('[Auth Route] Error stack:', error.stack);
-    }
+    // Log comprehensive error details
+    console.error('[Auth Route] Error caught:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+      url: req.url,
+      method: req.method,
+    });
+    
     // Return error response instead of crashing
     return NextResponse.json(
       { 
         error: 'Authentication error',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
+        // Don't expose stack trace in production
+        ...(process.env.NODE_ENV === 'development' && error instanceof Error
+          ? { stack: error.stack }
+          : {}),
       },
       { status: 500 }
     );
@@ -27,10 +36,28 @@ async function handleRequest(
 }
 
 export async function GET(req: NextRequest) {
-  return handleRequest(handlers.GET, req);
+  try {
+    return await handleRequest(handlers.GET, req);
+  } catch (error) {
+    // Fallback error handling
+    console.error('[Auth Route] GET handler error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: NextRequest) {
-  return handleRequest(handlers.POST, req);
+  try {
+    return await handleRequest(handlers.POST, req);
+  } catch (error) {
+    // Fallback error handling
+    console.error('[Auth Route] POST handler error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
 }
 
