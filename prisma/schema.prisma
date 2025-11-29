@@ -121,7 +121,7 @@ model HimalayaMemory {
 model UsageLog {
   id        String   @id @default(cuid())
   userId    String
-  modelId   String
+  modelId   String?  // Made optional to handle existing rows
   tokens    Int
   cost      Float?
   createdAt DateTime @default(now())
