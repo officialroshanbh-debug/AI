@@ -7,7 +7,7 @@ import { ModelSelector } from './model-selector';
 import { NewsSidebar } from '@/components/news/news-sidebar';
 import { ChatSkeleton } from './chat-skeleton';
 import { Button } from '@/components/ui/button';
-import { Newspaper } from 'lucide-react';
+import { Newspaper, Trash2 } from 'lucide-react';
 import type { Message, ModelId } from '@/types/ai-models';
 import { MODEL_IDS } from '@/types/ai-models';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
@@ -62,6 +62,79 @@ export function ChatContainer({
       description: 'Toggle sidebar',
     },
   ]);
+
+  const handleClearChat = () => {
+    if (window.confirm('Are you sure you want to clear the chat history?')) {
+      setMessages([]);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (messages.length === 0 || isStreaming) return;
+
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage.role === 'assistant') {
+      // Remove the last assistant message and regenerate
+      const newMessages = messages.slice(0, -1);
+      setMessages(newMessages);
+
+      // Find the last user message content to resend
+      const lastUserMessage = newMessages[newMessages.length - 1];
+      if (lastUserMessage && lastUserMessage.role === 'user') {
+        setIsStreaming(true);
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              messages: newMessages,
+              modelId: currentModel,
+            }),
+          });
+
+          if (!response.body) throw new Error('No response body');
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          const assistantMessage: Message = { role: 'assistant', content: '' };
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') {
+                  setIsStreaming(false);
+                  return;
+                }
+                try {
+                  const parsed = JSON.parse(data);
+                  if (parsed.content) {
+                    assistantMessage.content += parsed.content;
+                    setMessages([...newMessages, assistantMessage]);
+                  }
+                } catch { }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error regenerating message:', error);
+          setMessages([
+            ...newMessages,
+            { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' },
+          ]);
+        } finally {
+          setIsStreaming(false);
+        }
+      }
+    }
+  };
 
   const handleSend = async (content: string) => {
     const userMessage: Message = { role: 'user', content };
@@ -167,12 +240,25 @@ export function ChatContainer({
               </Button>
               <h1 className="text-xl font-semibold">AI Chat</h1>
             </div>
-            <ModelSelector
-              value={currentModel}
-              onValueChange={setCurrentModel}
-              disabled={isStreaming}
-              aria-label="Select AI model"
-            />
+            <div className="flex items-center gap-2">
+              <ModelSelector
+                value={currentModel}
+                onValueChange={setCurrentModel}
+                disabled={isStreaming}
+                aria-label="Select AI model"
+              />
+              {messages.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleClearChat}
+                  title="Clear chat"
+                  disabled={isStreaming}
+                >
+                  <Trash2 className="h-5 w-5 text-muted-foreground hover:text-destructive" />
+                </Button>
+              )}
+            </div>
           </div>
         </header>
 
@@ -205,6 +291,11 @@ export function ChatContainer({
                     key={`${message.role}-${index}`}
                     message={message}
                     isStreaming={isStreaming && index === messages.length - 1}
+                    onRegenerate={
+                      index === messages.length - 1 && message.role === 'assistant' && !isStreaming
+                        ? handleRegenerate
+                        : undefined
+                    }
                   />
                 ))}
                 <div ref={messagesEndRef} aria-hidden="true" />
