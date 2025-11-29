@@ -138,7 +138,7 @@ export class OpenAIProvider implements AIModelProvider {
       content: msg.content,
     }));
 
-    let stream: Awaited<ReturnType<typeof openai.chat.completions.create>> | null = null;
+    let stream: ChatCompletionStream | null = null;
 
     // Try models with fallback
     for (const model of models) {
