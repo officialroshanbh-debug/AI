@@ -6,6 +6,10 @@ import type {
   ModelStreamChunk,
 } from '@/types/ai-models';
 
+// Type definitions for OpenAI API responses
+type ChatCompletion = OpenAI.Chat.Completions.ChatCompletion;
+type ChatCompletionStream = AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -120,7 +124,8 @@ export class OpenAIProvider implements AIModelProvider {
         requestParams.max_tokens = maxTokens;
       }
 
-      return await openai.chat.completions.create(requestParams) as Promise<ChatCompletion>;
+      const result = await openai.chat.completions.create(requestParams);
+      return result as ChatCompletion;
     });
 
     const choice = response.choices[0];
