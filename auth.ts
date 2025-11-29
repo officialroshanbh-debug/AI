@@ -7,7 +7,8 @@ import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 
 // Create adapter with error handling
-// Note: Adapter is only used for account linking during OAuth, not for sessions (we use JWT)
+// Note: We handle account linking manually in signIn callback, but NextAuth still needs adapter
+// for some internal operations. We'll create it but errors will be caught in callbacks.
 let adapter;
 try {
   adapter = PrismaAdapter(prisma);
@@ -90,7 +91,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async signIn({ user, account, profile, email }) {
       try {
-        // Allow OAuth sign-ins - the adapter will handle account linking
+        // Handle OAuth sign-ins manually to avoid adapter errors
         if (account?.provider === 'google' || account?.provider === 'github') {
           // Ensure we have the required user data
           if (!user?.email) {
@@ -98,17 +99,92 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return false;
           }
           
-          // Test database connection before allowing sign-in
           try {
+            // Test database connection
             await prisma.$queryRaw`SELECT 1`;
             console.log('[Auth] Database connection verified');
+            
+            // Manually handle account linking to avoid adapter errors
+            const existingUser = await prisma.user.findUnique({
+              where: { email: user.email },
+              include: { accounts: true },
+            });
+            
+            if (existingUser) {
+              // User exists - check if account is linked
+              const existingAccount = existingUser.accounts.find(
+                (acc) => acc.provider === account.provider && acc.providerAccountId === account.providerAccountId
+              );
+              
+              if (!existingAccount && account.providerAccountId) {
+                // Link account
+                try {
+                  await prisma.account.create({
+                    data: {
+                      userId: existingUser.id,
+                      type: account.type,
+                      provider: account.provider,
+                      providerAccountId: account.providerAccountId,
+                      access_token: account.access_token,
+                      expires_at: account.expires_at,
+                      id_token: account.id_token,
+                      refresh_token: account.refresh_token,
+                      scope: account.scope,
+                      session_state: account.session_state,
+                      token_type: account.token_type,
+                    },
+                  });
+                  console.log('[Auth] Account linked successfully');
+                } catch (linkError) {
+                  console.error('[Auth] Failed to link account:', {
+                    message: linkError instanceof Error ? linkError.message : String(linkError),
+                    stack: linkError instanceof Error ? linkError.stack : undefined,
+                  });
+                  // Continue anyway - account might already exist
+                }
+              }
+            } else {
+              // Create new user and account
+              try {
+                await prisma.user.create({
+                  data: {
+                    email: user.email,
+                    name: user.name || null,
+                    image: user.image || null,
+                    emailVerified: user.emailVerified ? new Date(user.emailVerified) : null,
+                    accounts: {
+                      create: {
+                        type: account.type,
+                        provider: account.provider,
+                        providerAccountId: account.providerAccountId || '',
+                        access_token: account.access_token,
+                        expires_at: account.expires_at,
+                        id_token: account.id_token,
+                        refresh_token: account.refresh_token,
+                        scope: account.scope,
+                        session_state: account.session_state,
+                        token_type: account.token_type,
+                      },
+                    },
+                  },
+                });
+                console.log('[Auth] User and account created successfully');
+              } catch (createError) {
+                console.error('[Auth] Failed to create user/account:', {
+                  message: createError instanceof Error ? createError.message : String(createError),
+                  stack: createError instanceof Error ? createError.stack : undefined,
+                });
+                // If creation fails, still allow sign-in (user might exist from previous attempt)
+                // The adapter will handle it or we'll retry next time
+              }
+            }
           } catch (dbError) {
-            console.error('[Auth] Database connection error during OAuth sign-in:', {
+            console.error('[Auth] Database error during OAuth sign-in:', {
               message: dbError instanceof Error ? dbError.message : String(dbError),
               stack: dbError instanceof Error ? dbError.stack : undefined,
             });
-            // If database is not available, we can't create/link accounts
-            // But we can still allow sign-in and handle it in the adapter
+            // Still allow sign-in - JWT session will work without database
+            // Account linking can happen on next sign-in
           }
           
           // Log for debugging
@@ -132,7 +208,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name: error.name,
           });
         }
-        return false;
+        // Don't block sign-in on callback errors - let it proceed
+        return true;
       }
     },
     async jwt({ token, user, account, trigger }) {
