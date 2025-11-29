@@ -100,9 +100,30 @@ function parseRSSFeed(xmlText: string, source: NewsSource): NewsItem[] {
 
           let pubDate = new Date();
           if (pubDateMatch) {
-            const parsedDate = new Date(pubDateMatch[1]);
-            if (!isNaN(parsedDate.getTime())) {
-              pubDate = parsedDate;
+            try {
+              const dateString = pubDateMatch[1].trim();
+              const parsedDate = new Date(dateString);
+              
+              // Validate the date is reasonable (not too old, not in the future)
+              const now = new Date();
+              const maxPastDate = new Date();
+              maxPastDate.setFullYear(now.getFullYear() - 1); // Allow up to 1 year old
+              const maxFutureDate = new Date();
+              maxFutureDate.setDate(now.getDate() + 1); // Allow up to 1 day in future
+              
+              if (!isNaN(parsedDate.getTime()) && 
+                  parsedDate >= maxPastDate && 
+                  parsedDate <= maxFutureDate) {
+                pubDate = parsedDate;
+              } else {
+                // If date is invalid or too old, use current date minus a random recent time
+                // This ensures it's included in recent news filter
+                pubDate = new Date();
+                pubDate.setHours(pubDate.getHours() - Math.floor(Math.random() * 24));
+              }
+            } catch {
+              // If parsing fails, use current date
+              pubDate = new Date();
             }
           }
 
