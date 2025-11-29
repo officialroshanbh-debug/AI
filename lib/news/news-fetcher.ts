@@ -31,8 +31,10 @@ export async function fetchNewsFromRSS(source: NewsSource): Promise<NewsItem[]> 
         // Source may have removed RSS feed - skip silently
         return [];
       }
-      // For other errors, log but don't throw
-      console.warn(`Failed to fetch RSS from ${source.name}: ${response.status}`);
+      // For other errors, only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`Failed to fetch RSS from ${source.name}: ${response.status}`);
+      }
       return [];
     }
 
