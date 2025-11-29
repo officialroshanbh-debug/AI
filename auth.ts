@@ -7,6 +7,7 @@ import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   adapter: PrismaAdapter(prisma),
   providers: [
     Google({
@@ -61,13 +62,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   callbacks: {
     async jwt({ token, user }) {
+      // When user signs in, store their ID in the token
       if (user) {
         token.id = user.id;
       }
+      // Ensure token.id persists across requests
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
+      // Ensure session.user exists and has the ID from token
+      if (session.user && token.id) {
         session.user.id = token.id as string;
       }
       return session;

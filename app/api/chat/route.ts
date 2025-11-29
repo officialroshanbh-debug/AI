@@ -9,13 +9,28 @@ export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   try {
+    // In NextAuth v5, auth() should work without passing request, but let's ensure it gets headers
     const session = await auth();
-    if (!session?.user?.id) {
+    
+    if (!session) {
+      console.error('[Chat API] No session found');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    if (!session.user) {
+      console.error('[Chat API] No user in session', { session });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    // Get user ID from session
+    const userId = (session.user as { id?: string }).id;
+    if (!userId) {
+      console.error('[Chat API] No user ID in session', { user: session.user });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Rate limiting
-    const identifier = session.user.id;
+    const identifier = userId;
     const { success } = await rateLimiter.limit(identifier);
     if (!success) {
       return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
@@ -38,14 +53,14 @@ export async function POST(req: NextRequest) {
     let chat;
     if (chatId) {
       chat = await prisma.chat.findUnique({
-        where: { id: chatId, userId: session.user.id },
+        where: { id: chatId, userId: userId as string },
       });
     }
 
     if (!chat) {
       chat = await prisma.chat.create({
         data: {
-          userId: session.user.id,
+          userId: userId as string,
           title: messages[messages.length - 1]?.content?.slice(0, 50) || 'New Chat',
           modelId: model,
         },
@@ -81,7 +96,7 @@ export async function POST(req: NextRequest) {
             model,
             temperature: temperature ?? config.defaultTemperature,
             maxTokens: maxTokens ?? config.maxTokens,
-            userId: session.user.id,
+            userId: userId as string,
             chatId: chat.id,
           })) {
             if (chunk.content) {
@@ -106,7 +121,7 @@ export async function POST(req: NextRequest) {
               // Log usage
               await prisma.usageLog.create({
                 data: {
-                  userId: session.user.id,
+                  userId: userId as string,
                   modelId: model,
                   tokens: Math.ceil(fullContent.length / 4),
                 },
