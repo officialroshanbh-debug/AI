@@ -24,13 +24,17 @@ const chatRequestSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    // Authentication
+    // Authentication - auth() automatically reads from request context in NextAuth v5
     const session = await auth();
     
     if (!session?.user) {
       const cookieHeader = req.headers.get('cookie');
+      const allCookies = req.cookies.getAll();
       console.error('[Chat API] No session found', {
         hasCookieHeader: !!cookieHeader,
+        cookieCount: allCookies.length,
+        cookieNames: allCookies.map((c) => c.name),
+        cookieValues: allCookies.map((c) => c.name + '=' + (c.value ? 'present' : 'missing')),
       });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
