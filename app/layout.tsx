@@ -1,7 +1,11 @@
-import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from '@vercel/speed-insights/next';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { Providers } from '@/components/providers';
+import { Navbar } from '@/components/navbar';
+import './globals.css';
 
-// ... existing imports
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export default function RootLayout({
   children,
@@ -10,13 +14,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${geistSans.variable} ${geistMono.variable} font-sans`}>
+      <body className={`${inter.variable} font-sans`}>
         <ErrorBoundary>
           <Providers>
             <Navbar />
             {children}
-            <Analytics />
-            <SpeedInsights />
           </Providers>
         </ErrorBoundary>
       </body>
