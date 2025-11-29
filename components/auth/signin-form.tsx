@@ -43,7 +43,7 @@ export function SignInForm() {
     }
   };
 
-  const handleOAuth = async (provider: 'google' | 'github') => {
+  const handleOAuth = async (provider: 'google') => {
     await signIn(provider, { callbackUrl: '/chat' });
   };
 
