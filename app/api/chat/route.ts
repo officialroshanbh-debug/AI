@@ -7,6 +7,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 
+// Model mapping and actual API limits for OpenAI models
+const OPENAI_MODEL_MAP: Record<string, string> = {
+  'gpt-5.1': 'gpt-4o',
+  'gpt-4.1': 'gpt-4-turbo-preview',
+  'o3-mini': 'gpt-3.5-turbo',
+};
+
+const OPENAI_MODEL_LIMITS: Record<string, number> = {
+  'gpt-4o': 16384,
+  'gpt-4-turbo-preview': 8192,
+  'gpt-3.5-turbo': 4096,
+};
+
+function getActualModelLimit(modelId: ModelId, config: { provider: string; maxTokens: number }): number {
+  if (config.provider === 'openai') {
+    const actualModelName = OPENAI_MODEL_MAP[modelId] || 'gpt-4o';
+    return OPENAI_MODEL_LIMITS[actualModelName] || config.maxTokens;
+  }
+  return config.maxTokens;
+}
+
 export const maxDuration = 300;
 
 // Zod schema for request validation
@@ -79,27 +100,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid model' }, { status: 400 });
     }
 
-    // Get the actual model name and its real API limit
-    // For OpenAI models, we need to check the actual API limit, not just config
-    let actualModelLimit = config.maxTokens;
-    if (config.provider === 'openai') {
-      // Import the model mapping to get actual limits
-      const { OpenAIProvider } = await import('@/lib/models/openai-provider');
-      // Create a temporary instance to access the model mapping
-      // Actually, we'll calculate it here based on the model mapping
-      const modelMap: Record<string, string> = {
-        'gpt-5.1': 'gpt-4o',
-        'gpt-4.1': 'gpt-4-turbo-preview',
-        'o3-mini': 'gpt-3.5-turbo',
-      };
-      const modelLimits: Record<string, number> = {
-        'gpt-4o': 16384,
-        'gpt-4-turbo-preview': 8192,
-        'gpt-3.5-turbo': 4096,
-      };
-      const actualModelName = modelMap[model] || 'gpt-4o';
-      actualModelLimit = modelLimits[actualModelName] || config.maxTokens;
-    }
+    // Get the actual API limit for this model (important for OpenAI models that map to different API models)
+    const actualModelLimit = getActualModelLimit(model, config);
 
     // Ensure maxTokens doesn't exceed model's actual API limit
     const finalMaxTokens = maxTokens 
