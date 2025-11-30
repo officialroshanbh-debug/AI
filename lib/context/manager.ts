@@ -52,7 +52,7 @@ export class ContextManager {
       }));
 
     // Sort by most recent first, then trim to fit token limit
-    const sortedMessages = contextMessages.sort((a, b) => {
+    const sortedMessages = contextMessages.sort((_a, _b) => {
       // Assuming messages have timestamps or order
       return 0; // Would sort by timestamp
     });
@@ -98,7 +98,7 @@ export class ContextManager {
    */
   async createContextSummary(
     messages: ContextMessage[],
-    maxSummaryTokens: number = 500
+    _maxSummaryTokens: number = 500
   ): Promise<string> {
     // This would use an AI model to create a concise summary
     // For now, return a basic summary

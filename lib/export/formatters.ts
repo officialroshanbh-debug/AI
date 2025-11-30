@@ -182,7 +182,6 @@ export class ChatExporter {
    * Escape HTML
    */
   private escapeHtml(text: string): string {
-    const div = { innerHTML: text } as { innerHTML: string };
     return text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')

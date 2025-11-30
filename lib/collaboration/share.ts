@@ -72,8 +72,8 @@ export class ShareManager {
    */
   async validateShareAccess(
     token: string,
-    userId?: string,
-    password?: string
+    _userId?: string,
+    _password?: string
   ): Promise<{
     valid: boolean;
     chatId?: string;
@@ -114,21 +114,21 @@ export class ShareManager {
   /**
    * Remove a collaborator
    */
-  async removeCollaborator(chatId: string, collaboratorId: string): Promise<void> {
+  async removeCollaborator(_chatId: string, _collaboratorId: string): Promise<void> {
     // Implementation would remove from database
   }
 
   /**
    * Get all collaborators for a chat
    */
-  async getCollaborators(chatId: string): Promise<Collaborator[]> {
+  async getCollaborators(_chatId: string): Promise<Collaborator[]> {
     return [];
   }
 
   /**
    * Check if user can edit a shared chat
    */
-  async canEdit(chatId: string, userId: string): Promise<boolean> {
+  async canEdit(_chatId: string, _userId: string): Promise<boolean> {
     // Check if user is owner or has editor role
     return false;
   }
@@ -136,7 +136,7 @@ export class ShareManager {
   /**
    * Increment view count for a shared chat
    */
-  async incrementViewCount(token: string): Promise<void> {
+  async incrementViewCount(_token: string): Promise<void> {
     // Implementation would update database
   }
 }

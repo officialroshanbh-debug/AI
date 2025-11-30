@@ -103,8 +103,8 @@ export class RAGIndexer {
    */
   async search(
     query: string,
-    limit: number = 5,
-    filters?: Record<string, unknown>
+    _limit: number = 5,
+    _filters?: Record<string, unknown>
   ): Promise<Array<{ chunk: DocumentChunk; score: number }>> {
     // In production, this would:
     // 1. Generate embedding for query
@@ -155,7 +155,7 @@ export class RAGIndexer {
   /**
    * Delete a document and its chunks
    */
-  async deleteDocument(documentId: string): Promise<void> {
+  async deleteDocument(_documentId: string): Promise<void> {
     // Implementation would delete from database and vector store
   }
 }
