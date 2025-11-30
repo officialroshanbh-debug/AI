@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { RAGIndexer } from '@/lib/rag/indexer';
 
 export async function POST(req: NextRequest) {
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
         type: type || 'upload',
         source: source || null,
         content,
-        metadata: metadata || {},
+        metadata: (metadata || {}) as Prisma.InputJsonValue,
       },
     });
 
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
         content: chunk.content,
         chunkIndex: chunk.chunkIndex,
         embedding: chunk.embedding ? JSON.stringify(chunk.embedding) : null,
-        metadata: chunk.metadata || {},
+        metadata: (chunk.metadata || {}) as Prisma.InputJsonValue,
       })),
     });
 
