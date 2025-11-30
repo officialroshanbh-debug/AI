@@ -21,7 +21,18 @@ export function EnhancedSettingsContent() {
     phone: '',
     location: '',
   });
-  const [preferences, setPreferences] = useState({
+  const [preferences, setPreferences] = useState<{
+    defaultModel: ModelId;
+    responseStyle: string;
+    researchDepth: string;
+    theme: string;
+    language: string;
+    compactMode: boolean;
+    animations: boolean;
+    autoSaveHistory: boolean;
+    notifications: boolean;
+    dataSharing: boolean;
+  }>({
     defaultModel: MODEL_IDS.GPT_4_1,
     responseStyle: 'balanced',
     researchDepth: 'medium',
