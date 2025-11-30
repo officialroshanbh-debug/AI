@@ -53,6 +53,17 @@ model User {
   sessions      Session[]
   chats         Chat[]
   usageLogs     UsageLog[]
+  agents        Agent[]
+  mediaFiles    MediaFile[]
+  documents     Document[]
+  promptTemplates PromptTemplate[]
+  apiKeys       ApiKey[]
+  workflows     Workflow[]
+  feedback      Feedback[]
+  sessionActivities SessionActivity[]
+  twoFactorAuth TwoFactorAuth?
+  teamMembers   TeamMember[]
+  auditLogs     AuditLog[]
 }
 
 model VerificationToken {
@@ -68,14 +79,22 @@ model Chat {
   userId    String
   title     String
   modelId   String
+  workspaceId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
   messages  Message[]
   modelSelection ModelSelection?
+  agentTasks AgentTask[]
+  mediaFiles MediaFile[]
+  contextWindow ContextWindow?
+  sharedChat SharedChat?
+  citations Citation[]
 
   @@index([userId])
+  @@index([workspaceId])
   @@index([createdAt])
 }
 
@@ -86,9 +105,13 @@ model Message {
   content   String   @db.Text
   modelId   String?
   tokens    Int?
+  metadata  Json?    // Additional metadata (multimodal content, etc.)
   createdAt DateTime @default(now())
 
   chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  mediaFiles MediaFile[]
+  citations Citation[]
+  feedback  Feedback[]
 
   @@index([chatId])
   @@index([createdAt])
@@ -130,6 +153,388 @@ model UsageLog {
 
   @@index([userId])
   @@index([modelId])
+  @@index([createdAt])
+}
+
+// AI Agents & Multi-Agent System
+model Agent {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  role        String   // 'researcher' | 'writer' | 'analyst' | 'coder'
+  description String?  @db.Text
+  config      Json?    // Agent-specific configuration
+  memory      Json?    // Persistent memory for the agent
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks       AgentTask[]
+
+  @@index([userId])
+  @@index([role])
+}
+
+model AgentTask {
+  id          String   @id @default(cuid())
+  agentId     String
+  chatId      String?
+  taskType    String   // 'research' | 'write' | 'analyze' | 'code'
+  status      String   // 'pending' | 'in_progress' | 'completed' | 'failed'
+  input       String   @db.Text
+  output      String?  @db.Text
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  chat        Chat?    @relation(fields: [chatId], references: [id], onDelete: SetNull)
+
+  @@index([agentId])
+  @@index([chatId])
+  @@index([status])
+}
+
+// Multimodal AI Support
+model MediaFile {
+  id          String   @id @default(cuid())
+  userId      String
+  chatId      String?
+  messageId   String?
+  type        String   // 'image' | 'audio' | 'video' | 'pdf' | 'document'
+  url         String
+  filename    String
+  mimeType    String
+  size        Int      // Size in bytes
+  metadata    Json?    // Width, height, duration, etc.
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chat        Chat?    @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  message     Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([chatId])
+  @@index([messageId])
+  @@index([type])
+}
+
+// Advanced Context Management
+model ContextWindow {
+  id          String   @id @default(cuid())
+  chatId      String   @unique
+  includedMessages Json // Array of message IDs to include
+  excludedMessages Json // Array of message IDs to exclude
+  summary     String?  @db.Text // Context summarization
+  tokenCount  Int
+  maxTokens   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
+}
+
+// Collaborative Features
+model SharedChat {
+  id          String   @id @default(cuid())
+  chatId      String   @unique
+  shareToken  String   @unique
+  accessLevel String   // 'public' | 'private' | 'team'
+  expiresAt   DateTime?
+  password    String?  // Optional password protection
+  viewCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  collaborators SharedChatCollaborator[]
+
+  @@index([shareToken])
+  @@index([chatId])
+}
+
+model SharedChatCollaborator {
+  id          String   @id @default(cuid())
+  sharedChatId String
+  userId      String?
+  email       String?
+  role        String   // 'viewer' | 'editor' | 'owner'
+  createdAt   DateTime @default(now())
+
+  sharedChat  SharedChat @relation(fields: [sharedChatId], references: [id], onDelete: Cascade)
+  user        User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sharedChatId])
+  @@index([userId])
+  @@index([email])
+}
+
+// Advanced RAG
+model Document {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  type        String   // 'upload' | 'web' | 'knowledge_base'
+  source      String?  // URL or file path
+  content     String   @db.Text
+  embedding   String?  @db.Text // JSON array of embedding vector
+  metadata    Json?    // Author, date, tags, etc.
+  chunked     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chunks      DocumentChunk[]
+  citations   Citation[]
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model DocumentChunk {
+  id          String   @id @default(cuid())
+  documentId  String
+  content     String   @db.Text
+  embedding   String?  @db.Text // JSON array of embedding vector
+  chunkIndex  Int
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([chunkIndex])
+}
+
+model Citation {
+  id          String   @id @default(cuid())
+  documentId   String?
+  messageId    String?
+  source       String   // URL or document reference
+  quote        String?  @db.Text
+  relevance    Float?   // Relevance score
+  createdAt    DateTime @default(now())
+
+  document     Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  message      Message?  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([messageId])
+}
+
+// Prompt Templates & Library
+model PromptTemplate {
+  id          String   @id @default(cuid())
+  userId      String?
+  name        String
+  description String?  @db.Text
+  category    String   // 'general' | 'coding' | 'writing' | 'analysis' | 'research'
+  template    String   @db.Text
+  variables   Json?    // Array of variable names like ['name', 'date']
+  isPublic    Boolean  @default(false)
+  version     Int      @default(1)
+  usageCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([category])
+  @@index([isPublic])
+}
+
+// API Playground
+model ApiKey {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  keyHash     String   @unique
+  keyPrefix   String   // First 8 chars for display
+  lastUsedAt  DateTime?
+  usageCount  Int      @default(0)
+  rateLimit   Int?     // Custom rate limit per key
+  expiresAt   DateTime?
+  revoked     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usageLogs   ApiKeyUsageLog[]
+
+  @@index([userId])
+  @@index([keyHash])
+}
+
+model ApiKeyUsageLog {
+  id          String   @id @default(cuid())
+  apiKeyId    String
+  endpoint    String
+  method      String
+  statusCode  Int
+  tokens      Int?
+  cost         Float?
+  createdAt   DateTime @default(now())
+
+  apiKey      ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([apiKeyId])
+  @@index([createdAt])
+}
+
+// Workflow Automation
+model Workflow {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?  @db.Text
+  trigger     Json     // Trigger configuration
+  steps       Json     // Array of workflow steps
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  executions  WorkflowExecution[]
+
+  @@index([userId])
+  @@index([enabled])
+}
+
+model WorkflowExecution {
+  id          String   @id @default(cuid())
+  workflowId  String
+  status      String   // 'running' | 'completed' | 'failed'
+  input       Json?
+  output      Json?
+  error       String?  @db.Text
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@index([status])
+}
+
+// Feedback & Training Loop
+model Feedback {
+  id          String   @id @default(cuid())
+  userId      String
+  messageId   String
+  rating      Int?     // 1-5 or null
+  isPositive  Boolean?
+  comment     String?  @db.Text
+  reportedIssue String? @db.Text
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([messageId])
+  @@index([rating])
+}
+
+// Enhanced Security
+model SessionActivity {
+  id          String   @id @default(cuid())
+  userId      String
+  sessionId   String?
+  action      String   // 'login' | 'logout' | 'api_call' | 'data_export' | 'data_deletion'
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
+model TwoFactorAuth {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  secret      String   // Encrypted 2FA secret
+  enabled     Boolean  @default(false)
+  backupCodes String?  @db.Text // JSON array of backup codes
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Enterprise Features
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  plan        String   // 'free' | 'pro' | 'enterprise'
+  settings    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     TeamMember[]
+  workspaces  Workspace[]
+  auditLogs   AuditLog[]
+
+  @@index([slug])
+}
+
+model TeamMember {
+  id          String   @id @default(cuid())
+  teamId      String
+  userId      String
+  role        String   // 'owner' | 'admin' | 'member' | 'viewer'
+  permissions Json?
+  joinedAt    DateTime @default(now())
+
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+model Workspace {
+  id          String   @id @default(cuid())
+  teamId      String
+  name        String
+  description String?  @db.Text
+  settings    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  chats       Chat[]
+
+  @@index([teamId])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId     String?
+  teamId     String?
+  action     String
+  resource   String   // 'chat' | 'document' | 'user' | 'team'
+  resourceId String?
+  changes    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  team       Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([resource, resourceId])
   @@index([createdAt])
 }
 
