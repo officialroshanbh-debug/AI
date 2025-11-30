@@ -68,6 +68,15 @@ export async function POST(
     }
 
     // Save task to database
+    // Serialize results to plain objects for Prisma JSON field
+    const serializedResults = results.map(r => ({
+      taskId: r.taskId,
+      status: r.status,
+      output: r.output,
+      metadata: r.metadata || {},
+      error: r.error || null,
+    }));
+
     const agentTask = await prisma.agentTask.create({
       data: {
         agentId: agent.id,
@@ -75,13 +84,7 @@ export async function POST(
         status: results.every(r => r.status === 'completed') ? 'completed' : 'failed',
         input: task,
         output: results.map(r => r.output).join('\n\n'),
-        metadata: { results: results.map(r => ({
-          taskId: r.taskId,
-          status: r.status,
-          output: r.output,
-          metadata: r.metadata || {},
-          error: r.error,
-        })) },
+        metadata: { results: serializedResults } as Record<string, unknown>,
       },
     });
 
