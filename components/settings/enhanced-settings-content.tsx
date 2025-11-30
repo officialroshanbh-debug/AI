@@ -187,9 +187,11 @@ export function EnhancedSettingsContent() {
             <Label>Default Model</Label>
             <Select
               value={preferences.defaultModel}
-              onValueChange={(value) =>
-                setPreferences({ ...preferences, defaultModel: value as ModelId })
-              }
+              onValueChange={(value) => {
+                if (Object.values(MODEL_IDS).includes(value as ModelId)) {
+                  setPreferences({ ...preferences, defaultModel: value as ModelId });
+                }
+              }}
             >
               <SelectTrigger>
                 <SelectValue />
