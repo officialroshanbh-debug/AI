@@ -26,6 +26,7 @@ export function ChatContainer({
   const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const { location } = useLocation();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -136,6 +137,14 @@ export function ChatContainer({
         body: JSON.stringify({
           messages: newMessages,
           modelId: currentModel,
+          ...(location && {
+            userLocation: {
+              latitude: location.latitude,
+              longitude: location.longitude,
+              city: location.city,
+              country: location.country,
+            },
+          }),
         }),
       });
 

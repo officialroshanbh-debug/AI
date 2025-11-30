@@ -30,6 +30,12 @@ const chatRequestSchema = z.object({
   chatId: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().positive().optional(),
+  userLocation: z.object({
+    latitude: z.number(),
+    longitude: z.number(),
+    city: z.string().optional(),
+    country: z.string().optional(),
+  }).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -149,8 +155,45 @@ export async function POST(req: NextRequest) {
         })
       : Promise.resolve(null);
 
+    // Check if user is asking about weather
+    const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content.toLowerCase() || '';
+    const isWeatherQuery = /weather|temperature|rain|snow|forecast|climate|hot|cold|humidity|wind/.test(lastUserMessage);
+    
+    // Fetch weather data if user is asking about weather and location is provided
+    let weatherData = null;
+    if (isWeatherQuery && userLocation) {
+      try {
+        const weatherResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/weather?lat=${userLocation.latitude}&lon=${userLocation.longitude}&city=${userLocation.city || ''}`
+        );
+        if (weatherResponse.ok) {
+          weatherData = await weatherResponse.json();
+        }
+      } catch (error) {
+        console.error('[Chat API] Failed to fetch weather:', error);
+      }
+    }
+
     // Get provider and start streaming immediately (don't wait for user message save)
     const provider = modelRouter.getProvider(model);
+    
+    // Enhance messages with weather context if available
+    const enhancedMessages = [...messages];
+    if (weatherData && isWeatherQuery) {
+      const weatherContext = `Current weather in ${weatherData.location.name}, ${weatherData.location.country}:
+- Temperature: ${weatherData.current.temp}°C (feels like ${weatherData.current.feels_like}°C)
+- Condition: ${weatherData.current.weather[0]?.description || 'Unknown'}
+- Humidity: ${weatherData.current.humidity}%
+- Wind Speed: ${weatherData.current.wind_speed} km/h
+- Pressure: ${weatherData.current.pressure} hPa`;
+
+      // Add weather context as a system message before the last user message
+      enhancedMessages.splice(-1, 0, {
+        role: 'system',
+        content: weatherContext,
+      });
+    }
+
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
@@ -163,7 +206,7 @@ export async function POST(req: NextRequest) {
 
           // Start streaming immediately
           for await (const chunk of provider.streamModel({
-            messages: messages.map((m) => ({
+            messages: enhancedMessages.map((m) => ({
               role: m.role as 'user' | 'assistant' | 'system',
               content: m.content,
             })),
