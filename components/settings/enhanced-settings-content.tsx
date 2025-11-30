@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { MODEL_CONFIGS, MODEL_IDS, type ModelId } from '@/types/ai-models';
-import { User, Mail, Phone, MapPin, Download, Trash2, Calendar, Search, BarChart3 } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Download, Trash2, Calendar, BarChart3 } from 'lucide-react';
 
 export function EnhancedSettingsContent() {
   const { data: session } = useSession();
@@ -51,7 +51,8 @@ export function EnhancedSettingsContent() {
       const savedPrefs = localStorage.getItem('userPreferences');
       if (savedPrefs) {
         try {
-          setPreferences({ ...preferences, ...JSON.parse(savedPrefs) });
+          const parsed = JSON.parse(savedPrefs);
+          setPreferences((prev) => ({ ...prev, ...parsed }));
         } catch {
           // Ignore parse errors
         }

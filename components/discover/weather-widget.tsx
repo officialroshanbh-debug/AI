@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Cloud, CloudRain, Sun, CloudSun, Wind, Droplets, Thermometer } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Cloud, CloudRain, Sun, CloudSun, Wind, Droplets } from 'lucide-react';
 
 interface WeatherData {
   location: string;

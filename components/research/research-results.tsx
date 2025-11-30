@@ -5,7 +5,6 @@ import { Copy, Clock, FileText, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 
 interface ResearchResult {
   modelId: string;
@@ -25,7 +24,7 @@ interface ResearchResultsProps {
 export function ResearchResults({ results, onCopy }: ResearchResultsProps) {
   return (
     <div className="space-y-4">
-      {results.map((result, index) => (
+      {results.map((result) => (
         <Card key={result.modelId} className="overflow-hidden">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
