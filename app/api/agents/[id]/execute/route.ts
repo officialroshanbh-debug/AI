@@ -75,7 +75,13 @@ export async function POST(
         status: results.every(r => r.status === 'completed') ? 'completed' : 'failed',
         input: task,
         output: results.map(r => r.output).join('\n\n'),
-        metadata: { results },
+        metadata: { results: results.map(r => ({
+          taskId: r.taskId,
+          status: r.status,
+          output: r.output,
+          metadata: r.metadata || {},
+          error: r.error,
+        })) },
       },
     });
 
