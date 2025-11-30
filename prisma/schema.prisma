@@ -92,7 +92,6 @@ model Chat {
   mediaFiles MediaFile[]
   contextWindow ContextWindow?
   sharedChat SharedChat?
-  citations Citation[]
 
   @@index([userId])
   @@index([workspaceId])
