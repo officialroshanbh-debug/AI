@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { MultimodalProcessor } from '@/lib/multimodal/processor';
 
 export async function POST(req: NextRequest) {
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
         filename: result.mediaFile.filename,
         mimeType: result.mediaFile.mimeType,
         size: result.mediaFile.size,
-        metadata: result.mediaFile.metadata || {},
+        metadata: (result.mediaFile.metadata || {}) as Prisma.InputJsonValue,
       },
     });
 
