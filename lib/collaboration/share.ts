@@ -71,7 +71,7 @@ export class ShareManager {
    * Validate share token and check access
    */
   async validateShareAccess(
-    token: string,
+    _token: string,
     _userId?: string,
     _password?: string
   ): Promise<{

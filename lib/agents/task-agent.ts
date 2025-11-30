@@ -63,7 +63,7 @@ export abstract class BaseAgent {
   /**
    * Update agent memory with new information
    */
-  async updateMemory(key: string, value: unknown): Promise<void> {
+  async updateMemory(_key: string, _value: unknown): Promise<void> {
     // This would typically persist to database
     // For now, it's a placeholder
   }
@@ -71,7 +71,7 @@ export abstract class BaseAgent {
   /**
    * Retrieve relevant memory for context
    */
-  async getMemory(key: string): Promise<unknown> {
+  async getMemory(_key: string): Promise<unknown> {
     // This would typically retrieve from database
     return null;
   }
