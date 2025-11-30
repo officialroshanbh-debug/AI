@@ -32,6 +32,12 @@ export function Navbar() {
               <Link href="/discover">
                 <Button variant="ghost">Discover</Button>
               </Link>
+              <Link href="/research">
+                <Button variant="ghost">Research</Button>
+              </Link>
+              <Link href="/history">
+                <Button variant="ghost">History</Button>
+              </Link>
               <Link href="/settings">
                 <Button variant="ghost" size="icon">
                   <Settings className="h-4 w-4" />
