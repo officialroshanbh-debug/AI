@@ -37,7 +37,7 @@ export function ChatContainer({
   }, [messages]);
 
   // Keyboard shortcuts
-  useHotkeys([
+  useKeyboardShortcuts([
     {
       key: 'k',
       metaKey: true,
