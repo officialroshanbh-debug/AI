@@ -57,9 +57,9 @@ export function EnhancedSettingsContent() {
           // Ignore parse errors
         }
       }
-      // Load stats (mock for now)
+      // Load stats (mock for now - would fetch from API in production)
       setStats({
-        memberSince: new Date(session.user.createdAt || Date.now()),
+        memberSince: new Date(), // Would fetch from user record in production
         totalSearches: 42,
         researchCompleted: 8,
       });
