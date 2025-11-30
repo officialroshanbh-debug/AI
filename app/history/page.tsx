@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Search, Filter, Bookmark, BookmarkCheck, Trash2, Share2, RotateCcw, Calendar, FileText, Clock } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Filter, Bookmark, BookmarkCheck, Trash2, Share2, FileText, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -33,17 +33,7 @@ export default function HistoryPage() {
   const [dateFilter, setDateFilter] = useState<string>('all');
   const [bookmarkedOnly, setBookmarkedOnly] = useState(false);
 
-  useEffect(() => {
-    if (session?.user) {
-      fetchHistory();
-    }
-  }, [session]);
-
-  useEffect(() => {
-    filterHistory();
-  }, [history, searchQuery, typeFilter, modelFilter, dateFilter, bookmarkedOnly]);
-
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       setIsLoading(true);
       // Fetch chat history from API
@@ -59,7 +49,7 @@ export default function HistoryPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const generateMockHistory = (): HistoryItem[] => {
     const models: ModelId[] = ['gpt-4.1', 'gpt-5.1', 'o3-mini'];
@@ -86,7 +76,7 @@ export default function HistoryPage() {
     }));
   };
 
-  const filterHistory = () => {
+  const filterHistory = useCallback(() => {
     let filtered = [...history];
 
     // Search filter
@@ -130,7 +120,17 @@ export default function HistoryPage() {
     }
 
     setFilteredHistory(filtered);
-  };
+  }, [history, searchQuery, typeFilter, modelFilter, dateFilter, bookmarkedOnly]);
+
+  useEffect(() => {
+    if (session?.user) {
+      fetchHistory();
+    }
+  }, [session, fetchHistory]);
+
+  useEffect(() => {
+    filterHistory();
+  }, [filterHistory]);
 
   const toggleBookmark = (id: string) => {
     setHistory((prev) =>
