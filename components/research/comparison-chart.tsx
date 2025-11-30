@@ -2,10 +2,10 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
+import type { PlotParams } from 'react-plotly.js';
 
 // Dynamically import Plotly to avoid SSR issues
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const Plot = dynamic(() => import('react-plotly.js') as any, { ssr: false });
+const Plot = dynamic(() => import('react-plotly.js'), { ssr: false }) as React.ComponentType<PlotParams>;
 
 interface ResearchResult {
   modelId: string;

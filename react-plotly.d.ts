@@ -1,7 +1,7 @@
 declare module 'react-plotly.js' {
   import { Component, CSSProperties } from 'react';
 
-  interface PlotParams {
+  export interface PlotParams {
     data: Array<{
       x?: unknown[];
       y?: unknown[];
