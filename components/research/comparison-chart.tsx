@@ -4,7 +4,8 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 
 // Dynamically import Plotly to avoid SSR issues
-const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Plot = dynamic(() => import('react-plotly.js') as any, { ssr: false });
 
 interface ResearchResult {
   modelId: string;
