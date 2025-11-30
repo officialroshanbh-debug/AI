@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { AgentOrchestrator, ResearcherAgent, WriterAgent, AnalystAgent, CoderAgent } from '@/lib/agents/task-agent';
 
 export async function POST(
@@ -84,7 +85,7 @@ export async function POST(
         status: results.every(r => r.status === 'completed') ? 'completed' : 'failed',
         input: task,
         output: results.map(r => r.output).join('\n\n'),
-        metadata: { results: serializedResults } as Record<string, unknown>,
+        metadata: { results: serializedResults } as Prisma.InputJsonValue,
       },
     });
 
