@@ -2,10 +2,40 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import type { PlotParams } from 'react-plotly.js';
 
 // Dynamically import Plotly to avoid SSR issues
-const Plot = dynamic(() => import('react-plotly.js'), { ssr: false }) as React.ComponentType<PlotParams>;
+// Type assertion needed because dynamic() doesn't preserve custom prop types
+const Plot = dynamic(
+  () => import('react-plotly.js'),
+  { ssr: false }
+) as React.ComponentType<{
+  data: Array<{
+    x?: unknown[];
+    y?: unknown[];
+    type?: string;
+    marker?: { color?: string };
+    name?: string;
+    [key: string]: unknown;
+  }>;
+  layout?: {
+    autosize?: boolean;
+    margin?: { l?: number; r?: number; t?: number; b?: number };
+    paper_bgcolor?: string;
+    plot_bgcolor?: string;
+    font?: { color?: string; size?: number };
+    xaxis?: { gridcolor?: string; color?: string };
+    yaxis?: { gridcolor?: string; color?: string };
+    title?: string;
+    [key: string]: unknown;
+  };
+  config?: {
+    displayModeBar?: boolean;
+    responsive?: boolean;
+    [key: string]: unknown;
+  };
+  style?: React.CSSProperties;
+  [key: string]: unknown;
+}>;
 
 interface ResearchResult {
   modelId: string;
