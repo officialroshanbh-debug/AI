@@ -4,7 +4,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
 
 interface WeatherResponse {
   location: {
@@ -127,7 +126,11 @@ export async function GET(req: NextRequest) {
         wind_speed: Math.round(weatherData.wind?.speed * 3.6) || 0, // Convert m/s to km/h
         weather: weatherData.weather || [],
       },
-      daily: forecastData.list?.slice(0, 5).map((item: any) => ({
+      daily: forecastData.list?.slice(0, 5).map((item: {
+        dt: number;
+        main: { temp_min: number; temp_max: number };
+        weather?: Array<{ main: string; description: string; icon: string }>;
+      }) => ({
         dt: item.dt,
         temp: {
           min: Math.round(item.main.temp_min),

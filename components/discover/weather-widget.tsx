@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Cloud, CloudRain, Sun, CloudSun, Wind, Droplets, RefreshCw } from 'lucide-react';
 import { useLocation } from '@/hooks/use-location';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,7 @@ export function WeatherWidget() {
   const [error, setError] = useState<string | null>(null);
   const { location, requestLocation, isLoading: locationLoading } = useLocation();
 
-  const fetchWeather = async () => {
+  const fetchWeather = useCallback(async () => {
     if (!location) {
       setError('Location not available');
       setIsLoading(false);
@@ -76,7 +76,7 @@ export function WeatherWidget() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [location]);
 
   useEffect(() => {
     if (location) {
@@ -86,7 +86,7 @@ export function WeatherWidget() {
       setError('Location permission required');
       setIsLoading(false);
     }
-  }, [location, locationLoading]);
+  }, [location, locationLoading, fetchWeather]);
 
   if (isLoading || locationLoading) {
     return (

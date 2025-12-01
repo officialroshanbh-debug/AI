@@ -64,11 +64,11 @@ export const MODEL_CONFIGS: Record<ModelId, ModelConfig> = {
   [MODEL_IDS.GPT_5_1]: {
     id: MODEL_IDS.GPT_5_1,
     name: 'GPT-5.1',
-    description: 'OpenAI\'s most advanced model',
+    description: 'OpenAI\'s most advanced model (Nov 2025) - 128k context, enhanced reasoning',
     provider: 'openai',
     supportsStreaming: true,
     supportsLongForm: true,
-    maxTokens: 16384,
+    maxTokens: 16384, // Max output tokens (context window is 128k)
     defaultTemperature: 0.7,
   },
   [MODEL_IDS.GPT_4_1]: {

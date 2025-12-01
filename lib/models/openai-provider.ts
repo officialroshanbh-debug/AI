@@ -14,17 +14,18 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Model mapping with fallbacks - using current OpenAI models (as of 2024)
+// Model mapping with fallbacks - using current OpenAI models (as of 2025)
 // Based on OpenAI Platform documentation: https://platform.openai.com/docs/overview
 const MODEL_MAP: Record<string, string[]> = {
-  'gpt-5.1': ['gpt-4o', 'gpt-4-turbo', 'gpt-4'], // gpt-4o is the latest and most capable
+  'gpt-5.1': ['gpt-5.1-chat-latest', 'gpt-4o', 'gpt-4-turbo', 'gpt-4'], // GPT-5.1 is the latest (Nov 2025)
   'gpt-4.1': ['gpt-4-turbo', 'gpt-4o', 'gpt-4'], // gpt-4-turbo for long context
   'o3-mini': ['gpt-3.5-turbo', 'gpt-3.5-turbo-0125'], // Use latest gpt-3.5-turbo by default
 };
 
 // Model context window sizes (total tokens including input + output)
-// Source: OpenAI API documentation
+// Source: OpenAI API documentation (updated Nov 2025)
 const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
+  'gpt-5.1-chat-latest': 128000, // 128k context window (GPT-5.1, Nov 2025)
   'gpt-4': 8192,
   'gpt-4o': 128000, // 128k context window
   'gpt-4-turbo': 128000, // 128k context window
