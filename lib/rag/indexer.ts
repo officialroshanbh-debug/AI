@@ -52,14 +52,14 @@ export class RAGIndexer {
   ): DocumentChunk[] {
     const chunks: DocumentChunk[] = [];
     const content = document.content;
-    
+
     let start = 0;
     let chunkIndex = 0;
-    
+
     while (start < content.length) {
       const end = Math.min(start + chunkSize, content.length);
       const chunkContent = content.slice(start, end);
-      
+
       chunks.push({
         id: `${document.id}-chunk-${chunkIndex}`,
         documentId: document.id,
@@ -71,11 +71,11 @@ export class RAGIndexer {
           endChar: end,
         },
       });
-      
+
       start = end - overlap;
       chunkIndex++;
     }
-    
+
     return chunks;
   }
 
@@ -124,9 +124,9 @@ export class RAGIndexer {
   async indexDocument(document: Document): Promise<DocumentChunk[]> {
     const chunks = this.chunkDocument(document);
     const embeddedChunks = await this.generateEmbeddings(chunks);
-    
+
     // In production, this would save to vector database (Pinecone, Supabase Vector, etc.)
-    
+
     return embeddedChunks;
   }
 
@@ -146,25 +146,7 @@ export class RAGIndexer {
     return response.data[0]?.embedding || [];
   }
 
-  /**
-   * Calculate cosine similarity between two vectors
-   */
-  private cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length) return 0;
 
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-
-    for (let i = 0; i < a.length; i++) {
-      dotProduct += a[i]! * b[i]!;
-      normA += a[i]! * a[i]!;
-      normB += b[i]! * b[i]!;
-    }
-
-    const denominator = Math.sqrt(normA) * Math.sqrt(normB);
-    return denominator === 0 ? 0 : dotProduct / denominator;
-  }
 
   /**
    * Search for relevant documents/chunks using semantic similarity
@@ -223,7 +205,7 @@ export class RAGIndexer {
     // 2. Parse HTML and extract content
     // 3. Clean and structure the content
     // 4. Create a document and index it
-    
+
     return {
       id: `web-${Date.now()}`,
       title: 'Web Page',
