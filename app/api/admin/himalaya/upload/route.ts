@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin';
 import { prisma } from '@/lib/prisma';
 import { generateEmbeddingsBatch } from '@/lib/himalaya/embeddings';
+import { Prisma } from '@prisma/client';
 
 /**
  * POST /api/admin/himalaya/upload
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
         const embeddings = await generateEmbeddingsBatch(contents);
 
         // Create training data records
-        const trainingDataRecords = data.map((item: { title: string; content: string; metadata?: unknown }, index: number) => ({
+        const trainingDataRecords = data.map((item: { title: string; content: string; metadata?: Prisma.InputJsonValue }, index: number) => ({
             title: item.title,
             content: item.content,
             category,
