@@ -10,6 +10,7 @@ import { Trash2 } from 'lucide-react';
 import type { Message, ModelId } from '@/types/ai-models';
 import { MODEL_IDS } from '@/types/ai-models';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
+import { useLocation } from '@/hooks/use-location';
 
 interface ChatContainerProps {
   initialMessages?: Message[];
