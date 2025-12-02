@@ -36,7 +36,7 @@ export class MultimodalProcessor {
   }> {
     const buffer = file instanceof File ? Buffer.from(await file.arrayBuffer()) : file;
     const size = buffer.byteLength;
-    
+
     // Extract image metadata (dimensions)
     // Note: Sharp is optional - dimensions will be 0 if not available
     let width = 0;
@@ -88,7 +88,7 @@ export class MultimodalProcessor {
       });
 
       const description = response.choices[0]?.message?.content || '';
-      
+
       // Extract objects and text from description (simple parsing)
       const objects: Array<{ label: string; confidence: number }> = [];
       const textMatch = description.match(/text[:\s]+([^\n]+)/i);
@@ -111,7 +111,7 @@ export class MultimodalProcessor {
         text: '',
       };
     }
-    
+
     return {
       mediaFile: {
         id: `img-${Date.now()}`,
@@ -151,9 +151,9 @@ export class MultimodalProcessor {
 
     try {
       // Create a File-like object for OpenAI Whisper
-      const audioFile = file instanceof File 
-        ? file 
-        : new File([buffer], filename, { type: mimeType });
+      const audioFile = file instanceof File
+        ? file
+        : new File([new Uint8Array(buffer)], filename, { type: mimeType });
 
       const response = await openai.audio.transcriptions.create({
         file: audioFile,
@@ -179,7 +179,7 @@ export class MultimodalProcessor {
         language: 'en',
       };
     }
-    
+
     return {
       mediaFile: {
         id: `audio-${Date.now()}`,
@@ -206,7 +206,7 @@ export class MultimodalProcessor {
   }> {
     const buffer = file instanceof File ? await file.arrayBuffer() : file;
     const size = buffer.byteLength;
-    
+
     return {
       mediaFile: {
         id: `video-${Date.now()}`,
@@ -242,14 +242,14 @@ export class MultimodalProcessor {
     // In production, use pdf-parse or pdfjs-dist
     let content = '';
     let pages = 0;
-    
+
     try {
       // Simple text extraction - for full PDF parsing, install pdf-parse
       // const pdfParse = require('pdf-parse');
       // const pdfData = await pdfParse(buffer);
       // content = pdfData.text;
       // pages = pdfData.numpages;
-      
+
       // Placeholder for now - requires pdf-parse package
       content = 'PDF text extraction requires pdf-parse library. Install: npm install pdf-parse';
       pages = 0;
@@ -259,7 +259,7 @@ export class MultimodalProcessor {
     }
 
     const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
-    
+
     return {
       mediaFile: {
         id: `pdf-${Date.now()}`,
@@ -306,7 +306,7 @@ export class MultimodalProcessor {
     analysis?: VisionAnalysis | AudioTranscription | DocumentAnalysis;
   }> {
     const detectedType = type || this.detectMediaType(filename);
-    
+
     switch (detectedType) {
       case 'image':
       case 'screenshot':
@@ -327,17 +327,17 @@ export class MultimodalProcessor {
    */
   private detectMediaType(filename: string): MediaType {
     const ext = filename.split('.').pop()?.toLowerCase() || '';
-    
+
     const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
     const audioExts = ['mp3', 'wav', 'ogg', 'm4a', 'flac'];
     const videoExts = ['mp4', 'webm', 'mov', 'avi', 'mkv'];
     const pdfExts = ['pdf'];
-    
+
     if (imageExts.includes(ext)) return 'image';
     if (audioExts.includes(ext)) return 'audio';
     if (videoExts.includes(ext)) return 'video';
     if (pdfExts.includes(ext)) return 'pdf';
-    
+
     return 'document';
   }
 }
