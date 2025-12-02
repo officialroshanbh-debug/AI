@@ -4,7 +4,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
 import { modelRouter } from '@/lib/models/router';
 import { rateLimiter } from '@/lib/rate-limit';
 import { prisma } from '@/lib/prisma';

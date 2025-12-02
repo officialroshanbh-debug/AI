@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Play, Copy, Check, Code, Terminal, Key } from 'lucide-react';
+import { Play, Copy, Check, Terminal, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { MODEL_IDS } from '@/types/ai-models';
 
 const CODE_EXAMPLES = {

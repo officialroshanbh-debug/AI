@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { Upload, X, Image, FileAudio, FileVideo, FileText, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import NextImage from 'next/image';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { MediaFile } from '@/lib/multimodal/types';
@@ -18,8 +19,8 @@ interface FileUploadProps {
 
 export function FileUpload({
   onUpload,
-  chatId,
-  messageId,
+  _chatId,
+  _messageId,
   maxSize = 10 * 1024 * 1024, // 10MB default
   acceptedTypes = ['image/*', 'audio/*', 'video/*', 'application/pdf'],
   className,
@@ -40,12 +41,12 @@ export function FileUpload({
     setIsDragging(false);
   }, []);
 
-  const validateFile = (file: File): string | null => {
+  const validateFile = useCallback((file: File): string | null => {
     if (file.size > maxSize) {
       return `File size exceeds ${(maxSize / 1024 / 1024).toFixed(0)}MB limit`;
     }
     return null;
-  };
+  }, [maxSize]);
 
   const processFile = useCallback(async (file: File) => {
     const validationError = validateFile(file);
@@ -80,7 +81,7 @@ export function FileUpload({
         URL.revokeObjectURL(preview);
       }
     }
-  }, [onUpload, maxSize]);
+  }, [onUpload, validateFile]);
 
   const handleDrop = useCallback(
     async (e: React.DragEvent) => {
@@ -208,10 +209,13 @@ export function FileUpload({
                   className="relative group rounded-lg border bg-card p-3"
                 >
                   {item.preview ? (
-                    <img
+                    <NextImage
                       src={item.preview}
                       alt={item.file.name}
+                      width={96}
+                      height={96}
                       className="w-full h-24 object-cover rounded mb-2"
+                      unoptimized
                     />
                   ) : (
                     <div className="w-full h-24 flex items-center justify-center bg-muted rounded mb-2">
