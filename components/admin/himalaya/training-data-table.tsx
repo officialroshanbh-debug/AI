@@ -137,7 +137,7 @@ export function TrainingDataTable() {
                                                 {item.title.length > 50 && '...'}
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant=" outline">{item.category}</Badge>
+                                                <Badge variant="outline">{item.category}</Badge>
                                             </TableCell>
                                             <TableCell>{item.user.name || 'Unknown'}</TableCell>
                                             <TableCell>
