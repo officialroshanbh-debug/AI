@@ -3,9 +3,9 @@ import { notFound, redirect } from 'next/navigation';
 import { ChatContainer } from '@/components/chat/chat-container';
 import { ChatSidebar } from '@/components/chat/chat-sidebar';
 import { ChatSidebarMobile } from '@/components/chat/chat-sidebar-mobile';
+import { ChatWrapper } from '@/components/chat/chat-wrapper';
 import { getChatMessages, getChats } from '@/app/actions/chat';
 import type { Message } from '@/types/ai-models';
-import { motion } from 'framer-motion';
 
 interface ChatPageProps {
   params: Promise<{ id: string }>;
@@ -45,15 +45,9 @@ export default async function ChatIdPage({ params }: ChatPageProps) {
         </div>
 
         {/* Main chat area */}
-        <motion.div
-          key={id}
-          initial={{ opacity: 0, x: 12 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.25, ease: [0.25, 0.8, 0.25, 1] }}
-          className="flex-1 min-w-0"
-        >
+        <ChatWrapper chatId={id}>
           <ChatContainer initialMessages={messages} chatId={id} />
-        </motion.div>
+        </ChatWrapper>
       </div>
     </>
   );
