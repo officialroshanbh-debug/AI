@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin';
 import { prisma } from '@/lib/prisma';
 import { generateEmbedding } from '@/lib/himalaya/embeddings';
+import { Prisma } from '@prisma/client';
 
 /**
  * GET /api/admin/himalaya/training-data
@@ -144,7 +145,7 @@ export async function PATCH(req: NextRequest) {
             content?: string;
             category?: string;
             embedding?: string;
-            metadata?: unknown;
+            metadata?: Prisma.InputJsonValue;
             isActive?: boolean;
         } = {};
 
