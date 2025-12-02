@@ -133,7 +133,7 @@ export class RAGIndexer {
   /**
    * Generate embedding for a query string
    */
-  private async generateQueryEmbedding(query: string): Promise<number[]> {
+  async generateQueryEmbedding(query: string): Promise<number[]> {
     if (!process.env.OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY not set');
     }
@@ -143,10 +143,29 @@ export class RAGIndexer {
       input: query,
     });
 
+
     return response.data[0]?.embedding || [];
   }
 
+  /**
+   * Calculate cosine similarity between two vectors
+   */
+  cosineSimilarity(a: number[], b: number[]): number {
+    if (a.length !== b.length) return 0;
 
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+
+    for (let i = 0; i < a.length; i++) {
+      dotProduct += a[i]! * b[i]!;
+      normA += a[i]! * a[i]!;
+      normB += b[i]! * b[i]!;
+    }
+
+    const denominator = Math.sqrt(normA) * Math.sqrt(normB);
+    return denominator === 0 ? 0 : dotProduct / denominator;
+  }
 
   /**
    * Search for relevant documents/chunks using semantic similarity
