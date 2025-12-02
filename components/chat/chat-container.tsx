@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense, FormEvent } from 'react';
 import { ChatMessage } from './chat-message';
 import { ChatInput } from './chat-input';
 import { ModelSelector } from './model-selector';
@@ -11,6 +11,7 @@ import type { Message, ModelId } from '@/types/ai-models';
 import { MODEL_IDS } from '@/types/ai-models';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { useLocation } from '@/hooks/use-location';
+import { useChatStream } from '@/hooks/use-chat-stream';
 
 interface ChatContainerProps {
   initialMessages?: Message[];
@@ -21,13 +22,32 @@ interface ChatContainerProps {
 export function ChatContainer({
   initialMessages = [],
   initialModel = MODEL_IDS.GPT_4_1,
+  chatId,
 }: ChatContainerProps) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [currentModel, setCurrentModel] = useState<ModelId>(initialModel);
-  const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { location } = useLocation();
+
+  const {
+    messages,
+    input,
+    isLoading,
+    handleInputChange,
+    handleSubmit,
+  } = useChatStream({
+    chatId,
+    initialMessages,
+    modelId: currentModel,
+    userLocation: location
+      ? {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          city: location.city,
+          country: location.country,
+        }
+      : null,
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -51,151 +71,14 @@ export function ChatContainer({
 
   const handleClearChat = () => {
     if (window.confirm('Are you sure you want to clear the chat history?')) {
-      setMessages([]);
+      // Client-only clear; persisted messages remain but UI resets
+      window.location.reload();
     }
   };
 
-  const handleRegenerate = async () => {
-    if (messages.length === 0 || isStreaming) return;
-
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage.role === 'assistant') {
-      // Remove the last assistant message and regenerate
-      const newMessages = messages.slice(0, -1);
-      setMessages(newMessages);
-
-      // Find the last user message content to resend
-      const lastUserMessage = newMessages[newMessages.length - 1];
-      if (lastUserMessage && lastUserMessage.role === 'user') {
-        setIsStreaming(true);
-        try {
-          const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              messages: newMessages,
-              modelId: currentModel,
-            }),
-          });
-
-          if (!response.body) throw new Error('No response body');
-
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder();
-          const assistantMessage: Message = { role: 'assistant', content: '' };
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = line.slice(6);
-                if (data === '[DONE]') {
-                  setIsStreaming(false);
-                  return;
-                }
-                try {
-                  const parsed = JSON.parse(data);
-                  if (parsed.content) {
-                    assistantMessage.content += parsed.content;
-                    setMessages([...newMessages, assistantMessage]);
-                  }
-                } catch { }
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error regenerating message:', error);
-          setMessages([
-            ...newMessages,
-            { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' },
-          ]);
-        } finally {
-          setIsStreaming(false);
-        }
-      }
-    }
-  };
-
-  const handleSend = async (content: string) => {
-    const userMessage: Message = { role: 'user', content };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    setIsStreaming(true);
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Ensure cookies are sent with the request
-        body: JSON.stringify({
-          messages: newMessages,
-          modelId: currentModel,
-          ...(location && {
-            userLocation: {
-              latitude: location.latitude,
-              longitude: location.longitude,
-              city: location.city,
-              country: location.country,
-            },
-          }),
-        }),
-      });
-
-      if (!response.body) {
-        throw new Error('No response body');
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      const assistantMessage: Message = { role: 'assistant', content: '' };
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') {
-              setIsStreaming(false);
-              return;
-            }
-
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.content) {
-                assistantMessage.content += parsed.content;
-                setMessages([...newMessages, assistantMessage]);
-              }
-            } catch {
-              // Skip invalid JSON
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setMessages([
-        ...newMessages,
-        {
-          role: 'assistant',
-          content: 'Sorry, I encountered an error. Please try again.',
-        },
-      ]);
-    } finally {
-      setIsStreaming(false);
-    }
+  const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+    if (isLoading) return;
+    handleSubmit(event);
   };
 
   return (
@@ -220,7 +103,7 @@ export function ChatContainer({
                   size="icon"
                   onClick={handleClearChat}
                   title="Clear chat"
-                  disabled={isStreaming}
+                  disabled={isLoading}
                   className="h-8 w-8 md:h-10 md:w-10"
                 >
                   <Trash2 className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground hover:text-destructive" />
@@ -257,12 +140,7 @@ export function ChatContainer({
                   <ChatMessage
                     key={`${message.role}-${index}`}
                     message={message}
-                    isStreaming={isStreaming && index === messages.length - 1}
-                    onRegenerate={
-                      index === messages.length - 1 && message.role === 'assistant' && !isStreaming
-                        ? handleRegenerate
-                        : undefined
-                    }
+                    isStreaming={isLoading && index === messages.length - 1}
                   />
                 ))}
                 <div ref={messagesEndRef} aria-hidden="true" className="h-4" />
@@ -272,7 +150,22 @@ export function ChatContainer({
         </Suspense>
 
         <div className="shrink-0 border-t bg-background/80 backdrop-blur-sm">
-          <ChatInput ref={inputRef} onSend={handleSend} disabled={isStreaming} />
+          <form onSubmit={handleFormSubmit}>
+            <ChatInput
+              ref={inputRef}
+              onSend={(value) => {
+                // Bridge existing ChatInput signature with useChat
+                handleInputChange({
+                  target: { value },
+                } as React.ChangeEvent<HTMLTextAreaElement>);
+                // Manually submit since ChatInput doesn't provide the event
+                void handleSubmit(new Event('submit') as unknown as FormEvent<HTMLFormElement>);
+              }}
+              disabled={isLoading}
+              value={input}
+              onChange={handleInputChange}
+            />
+          </form>
         </div>
       </div>
     </div>

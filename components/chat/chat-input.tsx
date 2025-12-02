@@ -9,13 +9,17 @@ interface ChatInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  value?: string;
+  onChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
 }
 
 export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
-  ({ onSend, disabled, placeholder }, ref) => {
-    const [message, setMessage] = useState('');
+  ({ onSend, disabled, placeholder, value, onChange }, ref) => {
+    const [internalMessage, setInternalMessage] = useState('');
     const internalRef = useRef<HTMLTextAreaElement>(null);
     const textareaRef = ref || internalRef;
+
+  const message = value !== undefined ? value : internalMessage;
 
   useEffect(() => {
     const element = typeof textareaRef === 'function' ? null : textareaRef?.current;
@@ -29,7 +33,9 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
     e.preventDefault();
     if (message.trim() && !disabled) {
       onSend(message.trim());
-      setMessage('');
+      if (value === undefined) {
+        setInternalMessage('');
+      }
       const element = typeof textareaRef === 'function' ? null : textareaRef?.current;
       if (element) {
         element.style.height = 'auto';
@@ -54,7 +60,13 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
         <Textarea
           ref={ref || internalRef}
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => {
+            if (onChange) {
+              onChange(e);
+            } else {
+              setInternalMessage(e.target.value);
+            }
+          }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder || 'Type your message... (Press Enter to send, Shift+Enter for new line)'}
           disabled={disabled}
