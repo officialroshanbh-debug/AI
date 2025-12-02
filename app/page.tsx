@@ -44,28 +44,6 @@ export default function LandingPage() {
       <div className="fixed inset-0 gradient-mesh opacity-50" />
 
       <div className="relative">
-        {/* Navigation */}
-        <motion.header
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="sticky top-0 z-50 border-b border-border/40 backdrop-blur-xl"
-        >
-          <div className="container mx-auto flex h-16 items-center justify-between px-4">
-            <Link href="/" className="text-xl font-bold">
-              <span className="gradient-text">Roshan AI</span>
-            </Link>
-            <div className="flex gap-3">
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/auth/signin">Sign In</Link>
-              </Button>
-              <Button size="sm" className="shadow-medium" asChild>
-                <Link href="/chat">Get Started</Link>
-              </Button>
-            </div>
-          </div>
-        </motion.header>
-
         {/* Hero Section */}
         <section className="container mx-auto px-4 py-24 md:py-32">
           <motion.div
