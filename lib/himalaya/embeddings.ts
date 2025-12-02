@@ -9,7 +9,6 @@ const openai = new OpenAI({
 });
 
 const EMBEDDING_MODEL = 'text-embedding-3-small';
-const EMBEDDING_DIMENSIONS = 1536;
 
 export interface EmbeddingResult {
     embedding: number[];

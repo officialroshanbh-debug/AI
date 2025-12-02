@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -41,11 +41,7 @@ export function UserManagement() {
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
 
-    useEffect(() => {
-        fetchUsers();
-    }, [page]);
-
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams({

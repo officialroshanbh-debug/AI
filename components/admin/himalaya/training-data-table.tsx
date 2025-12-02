@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +32,7 @@ export function TrainingDataTable() {
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams({
@@ -51,11 +51,11 @@ export function TrainingDataTable() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, search]);
 
     useEffect(() => {
         fetchData();
-    }, [page]);
+    }, [fetchData]);
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this training data?')) return;
