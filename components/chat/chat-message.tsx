@@ -7,14 +7,22 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { User, Bot, Copy, Check, RefreshCw } from 'lucide-react';
+import { User, Bot, Copy, Check, RefreshCw, ExternalLink, BookOpen } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { Message as MessageType } from '@/types/ai-models';
 
+interface Citation {
+  id: string;
+  source: string;
+  quote?: string;
+  relevance?: number;
+}
+
 interface ChatMessageProps {
-  message: MessageType;
+  message: MessageType & { citations?: Citation[] };
   isStreaming?: boolean;
   onRegenerate?: () => void;
 }
@@ -221,6 +229,52 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
               />
             )}
           </div>
+
+          {/* Citations */}
+          {!isUser && message.citations && message.citations.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <BookOpen className="h-3 w-3" />
+                Sources ({message.citations.length})
+              </div>
+              <div className="space-y-2">
+                {message.citations.map((citation, idx) => (
+                  <motion.a
+                    key={citation.id || idx}
+                    href={citation.source}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="group flex items-start gap-2 p-2 rounded-lg border bg-muted/50 hover:bg-muted transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-medium text-primary">
+                          [{idx + 1}]
+                        </span>
+                        <span className="text-xs text-muted-foreground truncate">
+                          {citation.source}
+                        </span>
+                        {citation.relevance && (
+                          <Badge variant="outline" className="text-xs">
+                            {(citation.relevance * 100).toFixed(0)}% match
+                          </Badge>
+                        )}
+                      </div>
+                      {citation.quote && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          "{citation.quote}"
+                        </p>
+                      )}
+                    </div>
+                    <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5" />
+                  </motion.a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
