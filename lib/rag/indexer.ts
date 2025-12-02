@@ -3,6 +3,12 @@
  * Document upload/indexing, web scraping, knowledge base, citations
  */
 
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 export interface Document {
   id: string;
   title: string;
@@ -82,11 +88,6 @@ export class RAGIndexer {
       return chunks;
     }
 
-    const OpenAI = require('openai');
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
     try {
       // Batch process chunks (OpenAI allows up to 2048 inputs per request)
       const batchSize = 100;
@@ -137,11 +138,6 @@ export class RAGIndexer {
       throw new Error('OPENAI_API_KEY not set');
     }
 
-    const OpenAI = require('openai');
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
     const response = await openai.embeddings.create({
       model: 'text-embedding-3-small',
       input: query,
@@ -175,8 +171,8 @@ export class RAGIndexer {
    */
   async search(
     query: string,
-    limit: number = 5,
-    filters?: Record<string, unknown>
+    _limit: number = 5,
+    _filters?: Record<string, unknown>
   ): Promise<Array<{ chunk: DocumentChunk; score: number }>> {
     if (!process.env.OPENAI_API_KEY) {
       console.warn('[RAG] OPENAI_API_KEY not set, returning empty results');
@@ -184,8 +180,8 @@ export class RAGIndexer {
     }
 
     try {
-      // Generate query embedding
-      const queryEmbedding = await this.generateQueryEmbedding(query);
+      // Generate query embedding (used in actual implementation via API route)
+      await this.generateQueryEmbedding(query);
 
       // In production, this would query a vector database (Pinecone, Supabase Vector, etc.)
       // For now, we'll do a simple in-memory search using cosine similarity

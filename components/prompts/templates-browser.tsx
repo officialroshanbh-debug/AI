@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Search, Plus, Star, Copy, Edit, Trash2, Layers, TrendingUp, Code, BookOpen, Zap } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Search, Plus, Star, Copy, Layers, TrendingUp, Code, BookOpen, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,28 +37,7 @@ export function PromptTemplatesBrowser() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchTemplates();
-  }, []);
-
-  useEffect(() => {
-    filterTemplates();
-  }, [templates, selectedCategory, searchQuery]);
-
-  const fetchTemplates = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/prompts?public=true');
-      const data = await response.json();
-      setTemplates(data.templates || []);
-    } catch (error) {
-      console.error('Error fetching templates:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const filterTemplates = () => {
+  const filterTemplates = useCallback(() => {
     let filtered = templates;
 
     if (selectedCategory !== 'all') {
@@ -76,6 +55,27 @@ export function PromptTemplatesBrowser() {
     }
 
     setFilteredTemplates(filtered);
+  }, [templates, selectedCategory, searchQuery]);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
+
+  useEffect(() => {
+    filterTemplates();
+  }, [filterTemplates]);
+
+  const fetchTemplates = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/prompts?public=true');
+      const data = await response.json();
+      setTemplates(data.templates || []);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleUseTemplate = (template: PromptTemplate) => {

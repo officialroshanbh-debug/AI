@@ -7,14 +7,6 @@ import { put } from '@vercel/blob';
 import OpenAI from 'openai';
 import { MediaFile, MediaType, VisionAnalysis, AudioTranscription, DocumentAnalysis } from './types';
 
-// Optional sharp import for image metadata extraction
-let sharp: typeof import('sharp') | null = null;
-try {
-  sharp = require('sharp');
-} catch {
-  // Sharp not installed - will skip metadata extraction
-}
-
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -46,16 +38,18 @@ export class MultimodalProcessor {
     const size = buffer.byteLength;
     
     // Extract image metadata (dimensions)
+    // Note: Sharp is optional - dimensions will be 0 if not available
     let width = 0;
     let height = 0;
-    if (sharp) {
-      try {
-        const metadata = await sharp(buffer).metadata();
-        width = metadata.width || 0;
-        height = metadata.height || 0;
-      } catch {
-        // If sharp fails, dimensions remain 0
-      }
+    try {
+      // Dynamic import for optional sharp dependency
+      const sharp = await import('sharp');
+      const sharpInstance = sharp.default || sharp;
+      const metadata = await sharpInstance(buffer).metadata();
+      width = metadata.width || 0;
+      height = metadata.height || 0;
+    } catch {
+      // Sharp not installed or failed - dimensions remain 0
     }
 
     // Upload to Vercel Blob

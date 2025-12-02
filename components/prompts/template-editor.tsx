@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Save, Eye, Code, X, Plus } from 'lucide-react';
+import { Save, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 
 const CATEGORIES = [
@@ -84,7 +83,7 @@ export function PromptTemplateEditor() {
 
       if (!response.ok) throw new Error('Failed to save template');
 
-      const data = await response.json();
+      await response.json();
       router.push(`/prompts`);
     } catch (error) {
       console.error('Error saving template:', error);
