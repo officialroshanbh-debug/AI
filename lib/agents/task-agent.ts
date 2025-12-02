@@ -3,6 +3,9 @@
  * Task-oriented AI agents that can break down complex requests
  */
 
+import { modelRouter } from '@/lib/models/router';
+import type { ModelId } from '@/types/ai-models';
+
 export type AgentRole = 'researcher' | 'writer' | 'analyst' | 'coder' | 'orchestrator';
 
 export interface Task {
@@ -93,14 +96,41 @@ export class ResearcherAgent extends BaseAgent {
   }
 
   async execute(task: Task): Promise<TaskResult> {
-    // Implementation would call AI model with research-focused prompt
-    // For now, return a placeholder
-    return {
-      taskId: task.id,
-      status: 'completed',
-      output: `Research completed for: ${task.input}`,
-      metadata: { sources: [] },
-    };
+    try {
+      const modelId = (this.config.modelId || 'gpt-4.1') as ModelId;
+      const provider = modelRouter.getProvider(modelId);
+      
+      const systemPrompt = this.config.systemPrompt || 'You are a research assistant.';
+      const userPrompt = `Research Task: ${task.input}\n\nContext: ${JSON.stringify(task.context || {})}`;
+
+      const response = await provider.callModel({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        model: modelId,
+        temperature: this.config.temperature || 0.7,
+        maxTokens: this.config.maxTokens,
+      });
+
+      return {
+        taskId: task.id,
+        status: 'completed',
+        output: response.content,
+        metadata: {
+          modelId,
+          tokens: response.tokens,
+          sources: [],
+        },
+      };
+    } catch (error) {
+      return {
+        taskId: task.id,
+        status: 'failed',
+        output: '',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
   }
 
   async breakDown(request: string): Promise<Task[]> {
@@ -132,11 +162,40 @@ export class WriterAgent extends BaseAgent {
   }
 
   async execute(task: Task): Promise<TaskResult> {
-    return {
-      taskId: task.id,
-      status: 'completed',
-      output: `Content written for: ${task.input}`,
-    };
+    try {
+      const modelId = (this.config.modelId || 'gpt-4.1') as ModelId;
+      const provider = modelRouter.getProvider(modelId);
+      
+      const systemPrompt = this.config.systemPrompt || 'You are a professional writer.';
+      const userPrompt = `Writing Task: ${task.input}\n\nContext: ${JSON.stringify(task.context || {})}`;
+
+      const response = await provider.callModel({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        model: modelId,
+        temperature: this.config.temperature || 0.7,
+        maxTokens: this.config.maxTokens,
+      });
+
+      return {
+        taskId: task.id,
+        status: 'completed',
+        output: response.content,
+        metadata: {
+          modelId,
+          tokens: response.tokens,
+        },
+      };
+    } catch (error) {
+      return {
+        taskId: task.id,
+        status: 'failed',
+        output: '',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
   }
 
   async breakDown(request: string): Promise<Task[]> {
@@ -167,12 +226,41 @@ export class AnalystAgent extends BaseAgent {
   }
 
   async execute(task: Task): Promise<TaskResult> {
-    return {
-      taskId: task.id,
-      status: 'completed',
-      output: `Analysis completed for: ${task.input}`,
-      metadata: { insights: [] },
-    };
+    try {
+      const modelId = (this.config.modelId || 'gpt-4.1') as ModelId;
+      const provider = modelRouter.getProvider(modelId);
+      
+      const systemPrompt = this.config.systemPrompt || 'You are a data analyst.';
+      const userPrompt = `Analysis Task: ${task.input}\n\nContext: ${JSON.stringify(task.context || {})}`;
+
+      const response = await provider.callModel({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        model: modelId,
+        temperature: this.config.temperature || 0.5,
+        maxTokens: this.config.maxTokens,
+      });
+
+      return {
+        taskId: task.id,
+        status: 'completed',
+        output: response.content,
+        metadata: {
+          modelId,
+          tokens: response.tokens,
+          insights: [],
+        },
+      };
+    } catch (error) {
+      return {
+        taskId: task.id,
+        status: 'failed',
+        output: '',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
   }
 
   async breakDown(request: string): Promise<Task[]> {
@@ -203,12 +291,41 @@ export class CoderAgent extends BaseAgent {
   }
 
   async execute(task: Task): Promise<TaskResult> {
-    return {
-      taskId: task.id,
-      status: 'completed',
-      output: `Code generated for: ${task.input}`,
-      metadata: { language: 'typescript' },
-    };
+    try {
+      const modelId = (this.config.modelId || 'gpt-4.1') as ModelId;
+      const provider = modelRouter.getProvider(modelId);
+      
+      const systemPrompt = this.config.systemPrompt || 'You are a software engineer.';
+      const userPrompt = `Coding Task: ${task.input}\n\nContext: ${JSON.stringify(task.context || {})}`;
+
+      const response = await provider.callModel({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        model: modelId,
+        temperature: this.config.temperature || 0.3,
+        maxTokens: this.config.maxTokens,
+      });
+
+      return {
+        taskId: task.id,
+        status: 'completed',
+        output: response.content,
+        metadata: {
+          modelId,
+          tokens: response.tokens,
+          language: 'typescript',
+        },
+      };
+    } catch (error) {
+      return {
+        taskId: task.id,
+        status: 'failed',
+        output: '',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
   }
 
   async breakDown(request: string): Promise<Task[]> {
@@ -228,6 +345,7 @@ export class CoderAgent extends BaseAgent {
  */
 export class AgentOrchestrator {
   private agents: Map<AgentRole, BaseAgent[]> = new Map();
+  private communicationLog: Array<{ from: string; to: string; message: string; timestamp: Date }> = [];
 
   /**
    * Register an agent
@@ -240,13 +358,50 @@ export class AgentOrchestrator {
   }
 
   /**
-   * Execute a multi-step workflow using multiple agents
+   * Send a message from one agent to another
+   */
+  sendMessage(fromAgentId: string, toAgentId: string, message: string): void {
+    this.communicationLog.push({
+      from: fromAgentId,
+      to: toAgentId,
+      message,
+      timestamp: new Date(),
+    });
+  }
+
+  /**
+   * Get messages for an agent
+   */
+  getMessages(agentId: string): Array<{ from: string; message: string; timestamp: Date }> {
+    return this.communicationLog
+      .filter((log) => log.to === agentId)
+      .map((log) => ({
+        from: log.from,
+        message: log.message,
+        timestamp: log.timestamp,
+      }));
+  }
+
+  /**
+   * Find an agent by ID
+   */
+  findAgent(agentId: string): BaseAgent | null {
+    for (const agents of this.agents.values()) {
+      const agent = agents.find((a) => a.id === agentId);
+      if (agent) return agent;
+    }
+    return null;
+  }
+
+  /**
+   * Execute a multi-step workflow using multiple agents with communication
    */
   async executeWorkflow(
     request: string,
     workflow: Array<{ role: AgentRole; task: string }>
   ): Promise<TaskResult[]> {
     const results: TaskResult[] = [];
+    let previousResult: TaskResult | null = null;
 
     for (const step of workflow) {
       const agents = this.agents.get(step.role);
@@ -261,11 +416,42 @@ export class AgentOrchestrator {
       }
 
       const agent = agents[0]; // Use first available agent
-      const tasks = await agent.breakDown(step.task);
+      
+      // Include previous agent's output as context if available
+      const taskInput = previousResult
+        ? `${step.task}\n\nPrevious agent output: ${previousResult.output}`
+        : step.task;
+
+      const tasks = await agent.breakDown(taskInput);
 
       for (const task of tasks) {
+        // Add context from previous results
+        if (previousResult) {
+          task.context = {
+            ...task.context,
+            previousAgentOutput: previousResult.output,
+            previousAgentId: previousResult.taskId,
+          };
+        }
+
         const result = await agent.execute(task);
         results.push(result);
+        previousResult = result;
+
+        // Agent-to-agent communication: notify next agent if workflow continues
+        if (workflow.length > 1) {
+          const nextStep = workflow[workflow.indexOf(step) + 1];
+          if (nextStep) {
+            const nextAgents = this.agents.get(nextStep.role);
+            if (nextAgents && nextAgents.length > 0) {
+              this.sendMessage(
+                agent.id,
+                nextAgents[0]!.id,
+                `Task completed: ${task.input}. Result: ${result.output.slice(0, 200)}...`
+              );
+            }
+          }
+        }
       }
     }
 

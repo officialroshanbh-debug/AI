@@ -5,8 +5,9 @@ import { ChatMessage } from './chat-message';
 import { ChatInput } from './chat-input';
 import { ModelSelector } from './model-selector';
 import { ChatSkeleton } from './chat-skeleton';
+import { TemplateSelector } from './template-selector';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Trash2, FileText } from 'lucide-react';
 import type { Message, ModelId } from '@/types/ai-models';
 import { MODEL_IDS } from '@/types/ai-models';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
@@ -26,6 +27,7 @@ export function ChatContainer({
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [currentModel, setCurrentModel] = useState<ModelId>(initialModel);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { location } = useLocation();
@@ -203,8 +205,23 @@ export function ChatContainer({
     }
   };
 
+  const handleTemplateSelect = (templateText: string) => {
+    // Insert template text into input
+    if (inputRef.current) {
+      inputRef.current.value = templateText;
+      inputRef.current.dispatchEvent(new Event('input', { bubbles: true }));
+      inputRef.current.focus();
+    }
+  };
+
   return (
     <div className="flex h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3.5rem)] relative w-full">
+      {showTemplateSelector && (
+        <TemplateSelector
+          onSelect={handleTemplateSelect}
+          onClose={() => setShowTemplateSelector(false)}
+        />
+      )}
       {/* Chat Container */}
       <div className="flex-1 flex flex-col min-w-0 w-full max-w-full">
         <header className="border-b bg-background/80 backdrop-blur-sm px-3 py-2 md:px-4 md:py-4 sticky top-0 z-10 shrink-0">
@@ -213,6 +230,16 @@ export function ChatContainer({
               <h1 className="text-lg md:text-xl font-semibold truncate">AI Chat</h1>
             </div>
             <div className="flex items-center gap-1 md:gap-2 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowTemplateSelector(true)}
+                title="Use template"
+                disabled={isStreaming}
+                className="h-8 w-8 md:h-10 md:w-10"
+              >
+                <FileText className="h-4 w-4 md:h-5 md:w-5" />
+              </Button>
               <ModelSelector
                 value={currentModel}
                 onValueChange={setCurrentModel}
@@ -225,7 +252,7 @@ export function ChatContainer({
                   size="icon"
                   onClick={handleClearChat}
                   title="Clear chat"
-                  disabled={isLoading}
+                  disabled={isStreaming}
                   className="h-8 w-8 md:h-10 md:w-10"
                 >
                   <Trash2 className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground hover:text-destructive" />

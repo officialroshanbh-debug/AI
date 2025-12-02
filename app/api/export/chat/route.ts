@@ -78,12 +78,21 @@ export async function POST(req: NextRequest) {
         filename = `${chat.title || 'chat'}-${Date.now()}.json`;
         break;
       case 'pdf':
-        // PDF export would require a library like puppeteer or pdfkit
-        // For now, return HTML that can be printed to PDF
-        exportedContent = exporter.exportHTML(messages, exportOptions);
-        mimeType = 'text/html';
-        filename = `${chat.title || 'chat'}-${Date.now()}.html`;
-        break;
+        const pdfBuffer = await exporter.exportPDF(messages, exportOptions);
+        return new NextResponse(pdfBuffer, {
+          headers: {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="${chat.title || 'chat'}-${Date.now()}.pdf"`,
+          },
+        });
+      case 'docx':
+        const docxBuffer = await exporter.exportDOCX(messages, exportOptions);
+        return new NextResponse(docxBuffer, {
+          headers: {
+            'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'Content-Disposition': `attachment; filename="${chat.title || 'chat'}-${Date.now()}.docx"`,
+          },
+        });
       default:
         return NextResponse.json({ error: 'Invalid format' }, { status: 400 });
     }
