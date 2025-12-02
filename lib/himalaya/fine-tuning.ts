@@ -4,6 +4,7 @@
 
 import OpenAI from 'openai';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -100,7 +101,7 @@ export async function getFineTuneStatus(jobId: string) {
         data: {
             status: job.status,
             modelId: job.fine_tuned_model || undefined,
-            resultFiles: job.result_files as unknown as Record<string, unknown>,
+            resultFiles: job.result_files as unknown as Prisma.InputJsonValue,
             trainedTokens: job.trained_tokens || undefined,
             completedAt: job.finished_at ? new Date(job.finished_at * 1000) : null,
             errorMessage: job.error?.message || null,
