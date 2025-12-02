@@ -16,6 +16,10 @@ export function Navbar() {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
   const userRole = (session?.user as { role?: string } | null)?.role;
+  const userEmail = session?.user?.email;
+
+  // Check if user is admin (via role OR email)
+  const isAdmin = userRole === 'admin' || userEmail === 'officialroshanb@gmail.com';
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -39,7 +43,7 @@ export function Navbar() {
               <Link href="/history">
                 <Button variant="ghost">History</Button>
               </Link>
-              {userRole === 'admin' && (
+              {isAdmin && (
                 <>
                   <Link href="/admin/dashboard">
                     <Button variant="ghost">Dashboard</Button>
