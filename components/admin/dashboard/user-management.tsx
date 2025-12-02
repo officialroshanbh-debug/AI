@@ -60,7 +60,11 @@ export function UserManagement() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, search]);
+
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
 
     const handleSearch = () => {
         setPage(1);
