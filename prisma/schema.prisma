@@ -48,6 +48,7 @@ model User {
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  role          String    @default("user") // 'user' | 'admin'
 
   accounts      Account[]
   sessions      Session[]
@@ -65,6 +66,8 @@ model User {
   teamMembers   TeamMember[]
   auditLogs     AuditLog[]
   sharedChatCollaborators SharedChatCollaborator[]
+  himalayaTrainingData HimalayaTrainingData[]
+  himalayaFineTunes HimalayaFineTune[]
 }
 
 model VerificationToken {
@@ -138,7 +141,54 @@ model HimalayaMemory {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+
   @@index([createdAt])
+}
+
+// Himalaya Training System
+model HimalayaTrainingData {
+  id            String   @id @default(cuid())
+  title         String
+  content       String   @db.Text
+  category      String   // 'qa' | 'document' | 'dialogue' | 'knowledge'
+  embedding     String?  @db.Text // JSON stringified vector
+  metadata      Json?    // tags, source, etc.
+  uploadedBy    String
+  uploadedAt    DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  isActive      Boolean  @default(true)
+  
+  user          User     @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  
+  @@index([uploadedBy])
+  @@index([category])
+  @@index([isActive])
+  @@index([uploadedAt])
+  @@map("himalaya_training_data")
+}
+
+model HimalayaFineTune {
+  id              String   @id @default(cuid())
+  openaiJobId     String?  @unique
+  modelId         String?  @unique  // fine-tuned model ID from OpenAI
+  status          String   // 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled'
+  trainingFile    String?  // OpenAI file ID
+  validationFile  String?  // OpenAI file ID
+  hyperparameters Json?    // n_epochs, batch_size, learning_rate_multiplier
+  resultFiles     Json?    // URLs to result files
+  trainedTokens   Int?
+  createdBy       String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  completedAt     DateTime?
+  errorMessage    String?  @db.Text
+  
+  user            User     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  
+  @@index([createdBy])
+  @@index([status])
+  @@index([createdAt])
+  @@map("himalaya_finetunes")
 }
 
 model UsageLog {
