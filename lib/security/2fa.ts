@@ -6,6 +6,60 @@
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 
+// Base32 decoder (RFC 4648)
+function base32Decode(input: string): Buffer {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const cleanInput = input.toUpperCase().replace(/=+$/, ''); // Remove padding
+
+  let bits = 0;
+  let value = 0;
+  const output: number[] = [];
+
+  for (const char of cleanInput) {
+    const idx = alphabet.indexOf(char);
+    if (idx === -1) continue;
+
+    value = (value << 5) | idx;
+    bits += 5;
+
+    if (bits >= 8) {
+      output.push((value >>> (bits - 8)) & 0xff);
+      bits -= 8;
+    }
+  }
+
+  return Buffer.from(output);
+}
+
+// Base32 encoder (RFC 4648)
+function base32Encode(buffer: Buffer): string {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = 0;
+  let value = 0;
+  let output = '';
+
+  for (const byte of buffer) {
+    value = (value << 8) | byte;
+    bits += 8;
+
+    while (bits >= 5) {
+      output += alphabet[(value >>> (bits - 5)) & 0x1f];
+      bits -= 5;
+    }
+  }
+
+  if (bits > 0) {
+    output += alphabet[(value << (5 - bits)) & 0x1f];
+  }
+
+  // Add padding
+  while (output.length % 8 !== 0) {
+    output += '=';
+  }
+
+  return output;
+}
+
 // TOTP implementation (using crypto instead of otplib for compatibility)
 function generateTOTP(secret: string): string {
   const time = Math.floor(Date.now() / 1000 / 30);
@@ -13,15 +67,15 @@ function generateTOTP(secret: string): string {
   timeBuffer.writeUInt32BE(0, 0);
   timeBuffer.writeUInt32BE(time, 4);
 
-  const hmac = crypto.createHmac('sha1', Buffer.from(secret, 'base32'));
+  const hmac = crypto.createHmac('sha1', base32Decode(secret));
   hmac.update(timeBuffer);
   const hash = hmac.digest();
 
   const offset = hash[hash.length - 1]! & 0xf;
   const code = ((hash[offset]! & 0x7f) << 24) |
-               ((hash[offset + 1]! & 0xff) << 16) |
-               ((hash[offset + 2]! & 0xff) << 8) |
-               (hash[offset + 3]! & 0xff);
+    ((hash[offset + 1]! & 0xff) << 16) |
+    ((hash[offset + 2]! & 0xff) << 8) |
+    (hash[offset + 3]! & 0xff);
 
   return (code % 1000000).toString().padStart(6, '0');
 }
@@ -38,7 +92,7 @@ export async function generate2FASecret(userId: string): Promise<{
   secret: string;
   qrCodeUrl: string;
 }> {
-  const secret = crypto.randomBytes(20).toString('base32');
+  const secret = base32Encode(crypto.randomBytes(20));
   const serviceName = 'Roshan AI';
   const accountName = userId;
 
@@ -168,10 +222,10 @@ function encryptSecret(secret: string): string {
   const key = Buffer.from(process.env.ENCRYPTION_KEY || 'default-key-32-characters-long!!', 'utf8');
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv(algorithm, key, iv);
-  
+
   let encrypted = cipher.update(secret, 'utf8', 'hex');
   encrypted += cipher.final('hex');
-  
+
   return `${iv.toString('hex')}:${encrypted}`;
 }
 
@@ -183,11 +237,11 @@ function decryptSecret(encrypted: string): string {
   const key = Buffer.from(process.env.ENCRYPTION_KEY || 'default-key-32-characters-long!!', 'utf8');
   const [ivHex, encryptedData] = encrypted.split(':');
   const iv = Buffer.from(ivHex!, 'hex');
-  
+
   const decipher = crypto.createDecipheriv(algorithm, key, iv);
   let decrypted = decipher.update(encryptedData!, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
-  
+
   return decrypted;
 }
 
