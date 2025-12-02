@@ -30,20 +30,18 @@ export async function POST(req: NextRequest) {
     }
 
     const processor = new MultimodalProcessor();
-    const buffer = Buffer.from(await file.arrayBuffer());
     
-    // Process the media file
-    const result = await processor.processMedia(buffer, file.name);
+    // Process the media file (now includes upload to Vercel Blob + AI analysis)
+    const result = await processor.processMedia(file, file.name);
 
-    // In production, upload to storage (S3, Cloudinary, etc.)
-    // For now, we'll just save metadata
+    // Save to database with blob URL and analysis results
     const mediaFile = await prisma.mediaFile.create({
       data: {
         userId,
         chatId: chatId || null,
         messageId: messageId || null,
         type: result.mediaFile.type,
-        url: result.mediaFile.url || '', // Would be set after upload
+        url: result.mediaFile.url, // Now includes Vercel Blob URL
         filename: result.mediaFile.filename,
         mimeType: result.mediaFile.mimeType,
         size: result.mediaFile.size,

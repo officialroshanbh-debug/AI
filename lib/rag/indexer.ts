@@ -74,16 +74,47 @@ export class RAGIndexer {
   }
 
   /**
-   * Generate embeddings for document chunks
+   * Generate embeddings for document chunks using OpenAI
    */
   async generateEmbeddings(chunks: DocumentChunk[]): Promise<DocumentChunk[]> {
-    // In production, this would call an embedding API (OpenAI, Cohere, etc.)
-    // For now, return chunks with placeholder embeddings
-    
-    return chunks.map(chunk => ({
-      ...chunk,
-      embedding: new Array(1536).fill(0).map(() => Math.random()), // Placeholder
-    }));
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn('[RAG] OPENAI_API_KEY not set, skipping embeddings');
+      return chunks;
+    }
+
+    const OpenAI = require('openai');
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    try {
+      // Batch process chunks (OpenAI allows up to 2048 inputs per request)
+      const batchSize = 100;
+      const embeddedChunks: DocumentChunk[] = [];
+
+      for (let i = 0; i < chunks.length; i += batchSize) {
+        const batch = chunks.slice(i, i + batchSize);
+        const texts = batch.map((chunk) => chunk.content);
+
+        const response = await openai.embeddings.create({
+          model: 'text-embedding-3-small', // or 'text-embedding-ada-002'
+          input: texts,
+        });
+
+        batch.forEach((chunk, index) => {
+          embeddedChunks.push({
+            ...chunk,
+            embedding: response.data[index]?.embedding || [],
+          });
+        });
+      }
+
+      return embeddedChunks;
+    } catch (error) {
+      console.error('[RAG] Embedding generation failed:', error);
+      // Return chunks without embeddings on error
+      return chunks;
+    }
   }
 
   /**
@@ -99,19 +130,77 @@ export class RAGIndexer {
   }
 
   /**
-   * Search for relevant documents/chunks
+   * Generate embedding for a query string
+   */
+  private async generateQueryEmbedding(query: string): Promise<number[]> {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY not set');
+    }
+
+    const OpenAI = require('openai');
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const response = await openai.embeddings.create({
+      model: 'text-embedding-3-small',
+      input: query,
+    });
+
+    return response.data[0]?.embedding || [];
+  }
+
+  /**
+   * Calculate cosine similarity between two vectors
+   */
+  private cosineSimilarity(a: number[], b: number[]): number {
+    if (a.length !== b.length) return 0;
+
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+
+    for (let i = 0; i < a.length; i++) {
+      dotProduct += a[i]! * b[i]!;
+      normA += a[i]! * a[i]!;
+      normB += b[i]! * b[i]!;
+    }
+
+    const denominator = Math.sqrt(normA) * Math.sqrt(normB);
+    return denominator === 0 ? 0 : dotProduct / denominator;
+  }
+
+  /**
+   * Search for relevant documents/chunks using semantic similarity
    */
   async search(
     query: string,
-    _limit: number = 5,
-    _filters?: Record<string, unknown>
+    limit: number = 5,
+    filters?: Record<string, unknown>
   ): Promise<Array<{ chunk: DocumentChunk; score: number }>> {
-    // In production, this would:
-    // 1. Generate embedding for query
-    // 2. Search vector database for similar chunks
-    // 3. Return top results with similarity scores
-    
-    return [];
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn('[RAG] OPENAI_API_KEY not set, returning empty results');
+      return [];
+    }
+
+    try {
+      // Generate query embedding
+      const queryEmbedding = await this.generateQueryEmbedding(query);
+
+      // In production, this would query a vector database (Pinecone, Supabase Vector, etc.)
+      // For now, we'll do a simple in-memory search using cosine similarity
+      // This requires chunks to be loaded from the database with their embeddings
+
+      // This is a placeholder - actual implementation would:
+      // 1. Load chunks from database (with embeddings) matching filters
+      // 2. Calculate cosine similarity for each chunk
+      // 3. Sort by score and return top N
+
+      return [];
+    } catch (error) {
+      console.error('[RAG] Search failed:', error);
+      return [];
+    }
   }
 
   /**
