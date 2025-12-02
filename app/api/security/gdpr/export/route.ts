@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { exportUserData } from '@/lib/security/gdpr';
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: Request) {
   try {
     const session = await auth();
     if (!session?.user) {

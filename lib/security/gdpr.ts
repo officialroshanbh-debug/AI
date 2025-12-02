@@ -4,7 +4,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import { ChatExporter } from '@/lib/export/formatters';
+
 
 export interface UserDataExport {
   user: {

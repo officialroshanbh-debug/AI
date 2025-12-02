@@ -28,7 +28,7 @@ export class ChatExporter {
     options: ExportOptions = { format: 'markdown' }
   ): string {
     let markdown = '# Chat Export\n\n';
-    
+
     if (options.includeMetadata) {
       markdown += `**Exported:** ${new Date().toISOString()}\n`;
       markdown += `**Total Messages:** ${messages.length}\n\n`;
@@ -150,9 +150,9 @@ export class ChatExporter {
         ...(options.includeTimestamps && msg.timestamp ? { timestamp: msg.timestamp } : {}),
         ...(options.includeMetadata
           ? {
-              modelId: msg.modelId,
-              tokens: msg.tokens,
-            }
+            modelId: msg.modelId,
+            tokens: msg.tokens,
+          }
           : {}),
       })),
     };
@@ -199,7 +199,7 @@ export class ChatExporter {
   ): Promise<Buffer> {
     // Generate HTML first (can be converted to PDF with puppeteer or similar)
     const html = this.exportHTML(messages, { ...options, format: 'html' });
-    
+
     // For now, return HTML as buffer (client-side can use browser print to PDF)
     // In production, use puppeteer or similar to generate actual PDF
     return Buffer.from(html, 'utf-8');
@@ -215,7 +215,7 @@ export class ChatExporter {
     try {
       // Dynamic import for docx library
       const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
-    
+
       const children: (typeof Paragraph)[] = [];
 
       // Title
@@ -227,90 +227,90 @@ export class ChatExporter {
       );
 
       if (options.includeMetadata) {
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: `Exported: ${new Date().toISOString()}`,
-              bold: true,
-            }),
-          ],
-        })
-      );
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: `Total Messages: ${messages.length}`,
-              bold: true,
-            }),
-          ],
-        })
-      );
-      children.push(new Paragraph({ text: '' })); // Empty line
-    }
-
-    // Messages
-    for (const message of messages) {
-      const role = message.role === 'user' ? 'You' : 'Assistant';
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: role,
-              bold: true,
-            }),
-          ],
-          heading: HeadingLevel.HEADING_2,
-        })
-      );
-
-      if (options.includeTimestamps && message.timestamp) {
         children.push(
           new Paragraph({
             children: [
               new TextRun({
-                text: new Date(message.timestamp).toLocaleString(),
-                italics: true,
+                text: `Exported: ${new Date().toISOString()}`,
+                bold: true,
               }),
             ],
           })
         );
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `Total Messages: ${messages.length}`,
+                bold: true,
+              }),
+            ],
+          })
+        );
+        children.push(new Paragraph({ text: '' })); // Empty line
       }
 
-      // Split content into paragraphs
-      const contentLines = message.content.split('\n');
-      for (const line of contentLines) {
-        if (line.trim()) {
-          children.push(
-            new Paragraph({
-              children: [new TextRun(line)],
-            })
-          );
-        }
-      }
+      // Messages
+      for (const message of messages) {
+        const role = message.role === 'user' ? 'You' : 'Assistant';
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: role,
+                bold: true,
+              }),
+            ],
+            heading: HeadingLevel.HEADING_2,
+          })
+        );
 
-      if (options.includeMetadata) {
-        const metadataParts: string[] = [];
-        if (message.modelId) metadataParts.push(`Model: ${message.modelId}`);
-        if (message.tokens) metadataParts.push(`Tokens: ${message.tokens}`);
-        
-        if (metadataParts.length > 0) {
+        if (options.includeTimestamps && message.timestamp) {
           children.push(
             new Paragraph({
               children: [
                 new TextRun({
-                  text: metadataParts.join(' | '),
+                  text: new Date(message.timestamp).toLocaleString(),
                   italics: true,
                 }),
               ],
             })
           );
         }
-      }
 
-      children.push(new Paragraph({ text: '' })); // Separator
-    }
+        // Split content into paragraphs
+        const contentLines = message.content.split('\n');
+        for (const line of contentLines) {
+          if (line.trim()) {
+            children.push(
+              new Paragraph({
+                children: [new TextRun(line)],
+              })
+            );
+          }
+        }
+
+        if (options.includeMetadata) {
+          const metadataParts: string[] = [];
+          if (message.modelId) metadataParts.push(`Model: ${message.modelId}`);
+          if (message.tokens) metadataParts.push(`Tokens: ${message.tokens}`);
+
+          if (metadataParts.length > 0) {
+            children.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: metadataParts.join(' | '),
+                    italics: true,
+                  }),
+                ],
+              })
+            );
+          }
+        }
+
+        children.push(new Paragraph({ text: '' })); // Separator
+      }
 
       const doc = new Document({
         sections: [
@@ -321,7 +321,7 @@ export class ChatExporter {
       });
 
       return await Packer.toBuffer(doc);
-    } catch (error) {
+    } catch (_error) {
       // Fallback to HTML if docx library is not available
       console.warn('[Export] DOCX library not available, falling back to HTML');
       const html = this.exportHTML(messages, { ...options, format: 'html' });

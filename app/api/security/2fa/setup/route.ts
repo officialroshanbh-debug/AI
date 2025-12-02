@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { generate2FASecret } from '@/lib/security/2fa';
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: Request) {
   try {
     const session = await auth();
     if (!session?.user) {

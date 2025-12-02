@@ -32,15 +32,18 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
 
   useEffect(() => {
     if (selectedTemplate) {
-      const vars = selectedTemplate.variables || [];
-      const newValues: Record<string, string> = {};
-      vars.forEach((v) => {
-        if (!variableValues[v]) {
-          newValues[v] = '';
-        }
+      setVariableValues((prev) => {
+        const vars = selectedTemplate.variables || [];
+        const newValues: Record<string, string> = {};
+        let hasNew = false;
+        vars.forEach((v) => {
+          if (!prev[v]) {
+            newValues[v] = '';
+            hasNew = true;
+          }
+        });
+        return hasNew ? { ...prev, ...newValues } : prev;
       });
-      setVariableValues((prev) => ({ ...prev, ...newValues }));
-      updatePreview(selectedTemplate, { ...variableValues, ...newValues });
     }
   }, [selectedTemplate]);
 
