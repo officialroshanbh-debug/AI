@@ -40,9 +40,14 @@ export function Navbar() {
                 <Button variant="ghost">History</Button>
               </Link>
               {userRole === 'admin' && (
-                <Link href="/admin/himalaya">
-                  <Button variant="ghost">Train Himalaya</Button>
-                </Link>
+                <>
+                  <Link href="/admin/dashboard">
+                    <Button variant="ghost">Dashboard</Button>
+                  </Link>
+                  <Link href="/admin/himalaya">
+                    <Button variant="ghost">Train Himalaya</Button>
+                  </Link>
+                </>
               )}
               <Link href="/settings">
                 <Button variant="ghost" size="icon">
