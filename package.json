@@ -62,6 +62,7 @@
     "react-plotly.js": "^2.6.0",
     "react-markdown": "^9.0.1",
     "react-syntax-highlighter": "^16.1.0",
+    "recharts": "^2.12.7",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.0",
     "tailwind-merge": "^2.5.5",
