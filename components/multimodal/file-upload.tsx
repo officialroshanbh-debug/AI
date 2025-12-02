@@ -19,8 +19,8 @@ interface FileUploadProps {
 
 export function FileUpload({
   onUpload,
-  _chatId,
-  _messageId,
+  chatId: _chatId,
+  messageId: _messageId,
   maxSize = 10 * 1024 * 1024, // 10MB default
   acceptedTypes = ['image/*', 'audio/*', 'video/*', 'application/pdf'],
   className,
