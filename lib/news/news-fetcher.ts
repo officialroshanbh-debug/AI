@@ -23,7 +23,7 @@ export async function fetchNewsFromRSS(source: NewsSource): Promise<NewsItem[]> 
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; AI Platform News Fetcher)',
       },
-      next: { revalidate: 300 }, // Cache for 5 minutes
+      cache: 'no-store', // Always fetch fresh RSS for latest news
     });
 
     if (!response.ok) {

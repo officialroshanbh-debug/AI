@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { NewsItem } from '@/lib/news/nepal-news-sources';
 
 export const maxDuration = 60; // Increased for multiple sources
-export const revalidate = 300; // Revalidate every 5 minutes
+export const dynamic = 'force-dynamic'; // Always generate fresh data
 
 export async function GET(req: NextRequest) {
   try {
