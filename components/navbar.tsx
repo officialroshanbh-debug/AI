@@ -15,6 +15,7 @@ import {
 export function Navbar() {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
+  const userRole = (session?.user as { role?: string } | null)?.role;
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -38,6 +39,11 @@ export function Navbar() {
               <Link href="/history">
                 <Button variant="ghost">History</Button>
               </Link>
+              {userRole === 'admin' && (
+                <Link href="/admin/himalaya">
+                  <Button variant="ghost">Train Himalaya</Button>
+                </Link>
+              )}
               <Link href="/settings">
                 <Button variant="ghost" size="icon">
                   <Settings className="h-4 w-4" />

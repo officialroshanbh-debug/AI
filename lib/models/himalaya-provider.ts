@@ -28,6 +28,7 @@ export class HimalayaProvider implements AIModelProvider {
   maxTokens = 10000;
   supportsLongForm = true;
 
+
   private async getEnhancedContext(
     messages: Message[],
     userId?: string,
@@ -35,18 +36,56 @@ export class HimalayaProvider implements AIModelProvider {
   ): Promise<string> {
     if (!userId || !chatId) return '';
 
+    let context = '';
+
     try {
+      // 1. Get conversation memory
       const memory = await getHimalayaMemory(userId, chatId, messages);
       if (memory && memory.length > 0) {
-        return `\n\nRelevant context from previous interactions:\n${memory
+        context += `\n\nRelevant context from previous interactions:\n${memory
           .map((m) => `- ${m.summary}`)
           .join('\n')}\n`;
       }
+
+      // 2. RAG: Retrieve relevant training data
+      const lastUserMessage = messages.filter((m) => m.role === 'user').pop();
+      if (lastUserMessage) {
+        const { semanticSearch } = await import('@/lib/himalaya/embeddings');
+        const trainingData = await prisma.himalayaTrainingData.findMany({
+          where: { isActive: true },
+          select: { id: true, title: true, content: true, embedding: true },
+          take: 100, // Limit for performance
+        });
+
+        const relevantData = await semanticSearch(
+          lastUserMessage.content,
+          trainingData,
+          3, // Top 3 results
+          0.7 // 70% similarity threshold
+        );
+
+        if (relevantData.length > 0) {
+          context += `\n\nRelevant knowledge from training data:\n${relevantData
+            .map((item) => `- ${item.title}: ${item.content.slice(0, 200)}...`)
+            .join('\n')}\n`;
+        }
+      }
     } catch (error) {
-      console.error('Error fetching Himalaya memory:', error);
+      console.error('Error fetching Himalaya context:', error);
     }
 
-    return '';
+    return context;
+  }
+
+  private async getFineTunedModel(): Promise<string> {
+    try {
+      const { getLatestFineTunedModel } = await import('@/lib/himalaya/fine-tuning');
+      const modelId = await getLatestFineTunedModel();
+      return modelId || 'gpt-4o'; // Fallback to base model
+    } catch (error) {
+      console.error('Error getting fine-tuned model:', error);
+      return 'gpt-4o';
+    }
   }
 
   async callModel(params: ModelCallParams): Promise<ModelResponse> {
@@ -65,14 +104,15 @@ export class HimalayaProvider implements AIModelProvider {
       ...params.messages.filter((m) => m.role !== 'system'),
     ];
 
-    // For Himalaya, we use OpenAI but with enhanced prompts and long-form processing
+    // For Himalaya, we use fine-tuned model if available, otherwise GPT-4
     const { OpenAIProvider } = await import('./openai-provider');
     const openaiProvider = new OpenAIProvider();
+    const modelId = await this.getFineTunedModel();
 
     const response = await openaiProvider.callModel({
       ...params,
       messages: enhancedMessages,
-      model: 'gpt-4o', // Use GPT-4 as base
+      model: modelId,
       maxTokens: params.maxTokens ?? 10000,
       temperature: params.temperature ?? 0.6,
     });
@@ -112,6 +152,7 @@ export class HimalayaProvider implements AIModelProvider {
 
     const { OpenAIProvider } = await import('./openai-provider');
     const openaiProvider = new OpenAIProvider();
+    const modelId = await this.getFineTunedModel();
 
     let fullContent = '';
     let memoryPromise: Promise<void> | null = null;
@@ -120,7 +161,7 @@ export class HimalayaProvider implements AIModelProvider {
       for await (const chunk of openaiProvider.streamModel({
         ...params,
         messages: enhancedMessages,
-        model: 'gpt-4o',
+        model: modelId,
         maxTokens: params.maxTokens ?? 10000,
         temperature: params.temperature ?? 0.6,
       })) {
