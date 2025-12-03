@@ -80,9 +80,8 @@ export function UsageChart({
                             name: title,
                         })}
                     </ChartComponent>
-                </ChartComponent>
-            </ResponsiveContainer>
-        </CardContent>
+                </ResponsiveContainer>
+            </CardContent>
         </Card >
     );
 }
