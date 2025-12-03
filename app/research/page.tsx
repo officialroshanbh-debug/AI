@@ -202,7 +202,110 @@ export default function ResearchPage() {
     navigator.clipboard.writeText(text);
   };
 
-  const handleExport = () => {
+  const handleExportMarkdown = () => {
+    let markdown = `# Research Results\n\n`;
+    markdown += `**Query:** ${query}\n\n`;
+    markdown += `**Date:** ${new Date().toLocaleString()}\n\n`;
+    markdown += `**Models Compared:** ${selectedModels.map(id => MODEL_CONFIGS[id].name).join(', ')}\n\n`;
+
+    if (webSources.length > 0) {
+      markdown += `## Sources\n\n`;
+      webSources.forEach((source, i) => {
+        markdown += `${i + 1}. [${source.title}](${source.url})\n   ${source.snippet}\n\n`;
+      });
+    }
+
+    markdown += `## Results\n\n`;
+    results.forEach((r) => {
+      markdown += `### ${r.modelName}\n\n`;
+      markdown += `**Response Time:** ${r.responseTime}ms | **Words:** ${r.wordCount} | **Readability:** ${r.readabilityScore}\n\n`;
+      markdown += `${r.response}\n\n---\n\n`;
+    });
+
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `research-${Date.now()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPDF = async () => {
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF();
+
+    let yPos = 20;
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 20;
+    const maxWidth = pageWidth - (margin * 2);
+
+    // Title
+    doc.setFontSize(18);
+    doc.text('Research Results', margin, yPos);
+    yPos += 10;
+
+    // Query info
+    doc.setFontSize(10);
+    doc.text(`Query: ${query}`, margin, yPos);
+    yPos += 6;
+    doc.text(`Date: ${new Date().toLocaleString()}`, margin, yPos);
+    yPos += 6;
+    doc.text(`Models: ${selectedModels.map(id => MODEL_CONFIGS[id].name).join(', ')}`, margin, yPos);
+    yPos += 12;
+
+    // Sources
+    if (webSources.length > 0) {
+      doc.setFontSize(14);
+      doc.text('Sources', margin, yPos);
+      yPos += 8;
+      doc.setFontSize(9);
+
+      webSources.slice(0, 5).forEach((source, i) => {
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 20;
+        }
+        const sourceText = `${i + 1}. ${source.title}`;
+        const lines = doc.splitTextToSize(sourceText, maxWidth);
+        doc.text(lines, margin, yPos);
+        yPos += lines.length * 5;
+      });
+      yPos += 6;
+    }
+
+    // Results
+    results.forEach((r) => {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFontSize(12);
+      doc.text(r.modelName, margin, yPos);
+      yPos += 6;
+
+      doc.setFontSize(8);
+      doc.text(`Time: ${r.responseTime}ms | Words: ${r.wordCount} | Readability: ${r.readabilityScore}`, margin, yPos);
+      yPos += 8;
+
+      doc.setFontSize(9);
+      const responseLines = doc.splitTextToSize(r.response.substring(0, 1000), maxWidth);
+      responseLines.forEach((line: string) => {
+        if (yPos > 280) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.text(line, margin, yPos);
+        yPos += 4;
+      });
+      yPos += 8;
+    });
+
+    doc.save(`research-${Date.now()}.pdf`);
+  };
+
+  const handleExportJSON = () => {
     const data = {
       query,
       timestamp: new Date().toISOString(),
@@ -297,9 +400,17 @@ export default function ResearchPage() {
               <>
                 <ResearchResults results={results} onCopy={handleCopy} />
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={handleExport}>
+                  <Button variant="outline" onClick={handleExportMarkdown}>
                     <Download className="h-4 w-4 mr-2" />
-                    Export Results
+                    Export Markdown
+                  </Button>
+                  <Button variant="outline" onClick={handleExportPDF}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export PDF
+                  </Button>
+                  <Button variant="outline" onClick={handleExportJSON}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export JSON
                   </Button>
                   <Button
                     variant="outline"
