@@ -34,14 +34,12 @@ export default function ResearchPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<ResearchResult[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const [webSources, setWebSources] = useState<WebSource[]>([]);
-  const [previewSource, setPreviewSource] = useState<WebSource | null>(null);
 
   // Deep Research state
   const [researchMode, setResearchMode] = useState<'quick' | 'deep'>('quick');
-  const [deepResearchResult, setDeepResearchResult] = useState<DeepResearchResult | null>(null);
-  const [researchProgress, setResearchProgress] = useState({ status: '', progress: 0 });
+  const [, setDeepResearchResult] = useState<DeepResearchResult | null>(null);
+  const [, setResearchProgress] = useState({ status: '', progress: 0 });
   const [isDeepResearching, setIsDeepResearching] = useState(false);
 
   const availableModels = [
