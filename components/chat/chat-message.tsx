@@ -111,6 +111,16 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
 
           {/* Message Content */}
           <div className="prose prose-sm dark:prose-invert max-w-none">
+            {message.status && isStreaming && !message.content && (
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full"
+                />
+                <span className="text-sm italic">{message.status}</span>
+              </div>
+            )}
             {isUser ? (
               <p className="whitespace-pre-wrap leading-relaxed text-foreground">
                 {message.content}

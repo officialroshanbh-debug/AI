@@ -187,91 +187,6 @@ export async function POST(req: NextRequest) {
     }
 
     // WEB RESEARCH INTEGRATION
-    let researchData = null;
-    if (WebResearchAgent.detectIntent(lastUserMessage)) {
-      researchData = await WebResearchAgent.research(lastUserMessage);
-    }
-
-    // Get provider and start streaming immediately (don't wait for user message save)
-    const provider = modelRouter.getProvider(model);
-
-    // Enhance messages with context
-    const enhancedMessages = [...messages];
-
-    // Add weather context
-    if (weatherData && isWeatherQuery) {
-      const weatherContext = `Current weather in ${weatherData.location.name}, ${weatherData.location.country}:
-- Temperature: ${weatherData.current.temp}°C (feels like ${weatherData.current.feels_like}°C)
-- Condition: ${weatherData.current.weather[0]?.description || 'Unknown'}
-- Humidity: ${weatherData.current.humidity}%
-- Wind Speed: ${weatherData.current.wind_speed} km/h
-- Pressure: ${weatherData.current.pressure} hPa`;
-
-      enhancedMessages.splice(-1, 0, {
-        role: 'system',
-        content: weatherContext,
-      });
-    }
-
-    // Add research context
-    if (researchData && researchData.context) {
-      enhancedMessages.splice(-1, 0, {
-        role: 'system',
-        content: researchData.context,
-      });
-    }
-
-    // Process attachments if present
-    if (attachments && attachments.length > 0) {
-      // Check if model supports vision (GPT-4V, Claude with vision, etc.)
-      const supportsVision = model.includes('gpt-4') || model.includes('gpt-5');
-
-      if (supportsVision) {
-        // For vision models, we need to format the last user message with images
-        const lastUserIndex = enhancedMessages.length - 1;
-        const imageAttachments = attachments.filter(a => a.type === 'image');
-
-        if (imageAttachments.length > 0) {
-          // Add image analysis context if available
-          const analysisContext = imageAttachments
-            .filter(img => img.analysis?.description)
-            .map(img => `Image "${img.filename}": ${img.analysis.description}`)
-            .join('\n');
-
-          if (analysisContext) {
-            // Prepend analysis to user's message
-            enhancedMessages[lastUserIndex] = {
-              ...enhancedMessages[lastUserIndex],
-              content: `${analysisContext}\n\nUser: ${enhancedMessages[lastUserIndex].content}`,
-            };
-          }
-
-          console.log('[Chat API] Processed attachments for vision model:', {
-            imageCount: imageAttachments.length,
-            model,
-          });
-        }
-      }
-
-      // For non-image attachments (PDFs, documents), add their content/analysis as context
-      const documentAttachments = attachments.filter(a => a.type === 'pdf' || a.type === 'document');
-      if (documentAttachments.length > 0) {
-        const docContext = documentAttachments
-          .map(doc => {
-            const analysis = doc.analysis as { content?: string; summary?: string } | undefined;
-            return `Document "${doc.filename}":\n${analysis?.summary || analysis?.content || 'Content unavailable'}`;
-          })
-          .join('\n\n');
-
-        if (docContext) {
-          enhancedMessages.splice(-1, 0, {
-            role: 'system',
-            content: `The user has attached the following documents:\n\n${docContext}`,
-          });
-        }
-      }
-    }
-
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
@@ -281,6 +196,89 @@ export async function POST(req: NextRequest) {
         try {
           // Start user message save in parallel (don't block on it)
           dbWritePromises.push(userMessagePromise);
+
+          // WEB RESEARCH INTEGRATION (Inside stream for progress updates)
+          let researchData = null;
+          if (WebResearchAgent.detectIntent(lastUserMessage)) {
+            researchData = await WebResearchAgent.research(lastUserMessage, (status) => {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status })}\n\n`));
+            });
+          }
+
+          // Get provider
+          const provider = modelRouter.getProvider(model);
+
+          // Enhance messages with context
+          const enhancedMessages = [...messages];
+
+          // Add weather context
+          if (weatherData && isWeatherQuery) {
+            const weatherContext = `Current weather in ${weatherData.location.name}, ${weatherData.location.country}:
+      - Temperature: ${weatherData.current.temp}°C (feels like ${weatherData.current.feels_like}°C)
+      - Condition: ${weatherData.current.weather[0]?.description || 'Unknown'}
+      - Humidity: ${weatherData.current.humidity}%
+      - Wind Speed: ${weatherData.current.wind_speed} km/h
+      - Pressure: ${weatherData.current.pressure} hPa`;
+
+            enhancedMessages.splice(-1, 0, {
+              role: 'system',
+              content: weatherContext,
+            });
+          }
+
+          // Add research context if available
+          if (researchData && researchData.context) {
+            enhancedMessages.splice(-1, 0, {
+              role: 'system',
+              content: researchData.context,
+            });
+          }
+
+          // Process attachments if present
+          if (attachments && attachments.length > 0) {
+            // Check if model supports vision (GPT-4V, Claude with vision, etc.)
+            const supportsVision = model.includes('gpt-4') || model.includes('gpt-5');
+
+            if (supportsVision) {
+              // For vision models, we need to format the last user message with images
+              const lastUserIndex = enhancedMessages.length - 1;
+              const imageAttachments = attachments.filter(a => a.type === 'image');
+
+              if (imageAttachments.length > 0) {
+                // Add image analysis context if available
+                const analysisContext = imageAttachments
+                  .filter(img => img.analysis?.description)
+                  .map(img => `Image "${img.filename}": ${img.analysis.description}`)
+                  .join('\n');
+
+                if (analysisContext) {
+                  // Prepend analysis to user's message
+                  enhancedMessages[lastUserIndex] = {
+                    ...enhancedMessages[lastUserIndex],
+                    content: `${analysisContext}\n\nUser: ${enhancedMessages[lastUserIndex].content}`,
+                  };
+                }
+              }
+            }
+
+            // For non-image attachments (PDFs, documents), add their content/analysis as context
+            const documentAttachments = attachments.filter(a => a.type === 'pdf' || a.type === 'document');
+            if (documentAttachments.length > 0) {
+              const docContext = documentAttachments
+                .map(doc => {
+                  const analysis = doc.analysis as { content?: string; summary?: string } | undefined;
+                  return `Document "${doc.filename}":\n${analysis?.summary || analysis?.content || 'Content unavailable'}`;
+                })
+                .join('\n\n');
+
+              if (docContext) {
+                enhancedMessages.splice(-1, 0, {
+                  role: 'system',
+                  content: `The user has attached the following documents:\n\n${docContext}`,
+                });
+              }
+            }
+          }
 
           // Stream citations if available
           if (researchData && researchData.citations.length > 0) {

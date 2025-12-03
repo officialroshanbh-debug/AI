@@ -252,10 +252,16 @@ export function ChatContainer({
               const parsed = JSON.parse(data);
               if (parsed.content) {
                 assistantMessage.content += parsed.content;
+                // Clear status when content starts arriving
+                assistantMessage.status = undefined;
                 setMessages([...newMessages, assistantMessage]);
               }
               if (parsed.citations) {
                 assistantMessage.citations = parsed.citations;
+                setMessages([...newMessages, assistantMessage]);
+              }
+              if (parsed.status) {
+                assistantMessage.status = parsed.status;
                 setMessages([...newMessages, assistantMessage]);
               }
             } catch {

@@ -47,11 +47,13 @@ export class WebResearchAgent {
     /**
      * Performs web research based on the user's query.
      */
-    static async research(query: string): Promise<{ citations: Citation[], context: string }> {
+    static async research(query: string, onProgress?: (status: string) => void): Promise<{ citations: Citation[], context: string }> {
         console.log(`[WebResearchAgent] Searching for: ${query}`);
+        onProgress?.('Searching the web...');
 
         try {
             const results = await performWebSearch(query);
+            onProgress?.(`Found ${results.length} results. Reading content...`);
 
             if (results.length === 0) {
                 return { citations: [], context: '' };

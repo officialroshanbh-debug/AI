@@ -13,6 +13,7 @@ export interface Message {
   role: ModelRole;
   content: string;
   citations?: Citation[];
+  status?: string;
 }
 
 export interface ModelResponse {
