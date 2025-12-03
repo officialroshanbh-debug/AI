@@ -1,6 +1,6 @@
 'use client';
 
-import { ExternalLink, Clock } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface NewsItem {

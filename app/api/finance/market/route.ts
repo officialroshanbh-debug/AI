@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 
 // Using a free unofficial NEPSE API
 // Source: https://nepse-data-api.vercel.app (or similar community API)
-const NEPSE_API_BASE = 'https://nepse-alpha.com/trading-menu/top-stocks/';
 // Note: Direct NEPSE API access is difficult without a paid subscription or complex scraping.
 // For this implementation, we will use a mock/simulated data structure if the external API is unavailable,
 // or try to hit a known public endpoint. 
