@@ -1,9 +1,17 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { requireUser } from '@/auth';
+import { auth } from '@/auth';
 import { DeepResearchResult } from '@/types/research';
 import { revalidatePath } from 'next/cache';
+
+async function requireUser() {
+    const session = await auth();
+    if (!session?.user?.id) {
+        throw new Error('Unauthorized');
+    }
+    return session.user.id;
+}
 
 export async function saveResearch(result: DeepResearchResult) {
     const userId = await requireUser();

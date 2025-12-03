@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Search, Share2, Download, BarChart3, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -321,7 +322,7 @@ export default function ResearchPage() {
   };
 
   const handleExportPDF = async () => {
-    // @ts-ignore
+    // @ts-expect-error - jspdf import might fail in some environments
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
 
@@ -432,10 +433,10 @@ export default function ResearchPage() {
             </p>
           </div>
           <Button variant="outline" asChild>
-            <a href="/research/history">
+            <Link href="/research/history">
               <FileText className="mr-2 h-4 w-4" />
               History
-            </a>
+            </Link>
           </Button>
         </div>
 
