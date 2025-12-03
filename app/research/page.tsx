@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MODEL_CONFIGS, MODEL_IDS, type ModelId } from '@/types/ai-models';
 import { ResearchComparisonChart } from '@/components/research/comparison-chart';
 import { ResearchResults } from '@/components/research/research-results';
-import type { DeepResearchResult } from '@/lib/research/deep-research';
+
 
 interface ResearchResult {
   modelId: ModelId;
