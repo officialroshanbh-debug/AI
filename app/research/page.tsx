@@ -207,6 +207,38 @@ export default function ResearchPage() {
     }
   };
 
+  const handleDeepResearch = async () => {
+    if (!query.trim()) {
+      setError('Please enter a query');
+      return;
+    }
+
+    setIsDeepResearching(true);
+    setError(null);
+    setDeepResearchResult(null);
+    setResearchProgress({ status: 'Starting deep research...', progress: 0 });
+
+    try {
+      const response = await fetch('/api/research/deep', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Deep research failed');
+      }
+
+      const result = await response.json();
+      setDeepResearchResult(result);
+      setResearchProgress({ status: 'Complete!', progress: 100 });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to perform deep research');
+    } finally {
+      setIsDeepResearching(false);
+    }
+  };
+
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
   };
@@ -346,9 +378,26 @@ export default function ResearchPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-serif font-medium tracking-tight mb-2">Research</h1>
           <p className="text-sm text-muted-foreground">
-            Compare responses from multiple AI models side-by-side
+            Compare responses from multiple AI models {researchMode === 'deep' && '| Generate comprehensive 10-20 page reports'}
           </p>
         </div>
+
+        {/* Mode Toggle */}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <Tabs value={researchMode} onValueChange={(v) => setResearchMode(v as 'quick' | 'deep')}>
+              <TabsList className="grid w-full grid-cols-2 max-w-md">
+                <TabsTrigger value="quick">Quick Research</TabsTrigger>
+                <TabsTrigger value="deep">Deep Research (10-20 pages)</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <p className="text-xs text-muted-foreground mt-3">
+              {researchMode === 'quick'
+                ? 'Compare AI models side-by-side with fast responses'
+                : 'Generate comprehensive research reports with multiple sections, citations, and 5,000-10,000 words (takes 2-5 minutes)'}
+            </p>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Input Section */}
@@ -393,13 +442,22 @@ export default function ResearchPage() {
                 )}
 
                 <Button
-                  onClick={handleResearch}
-                  disabled={isLoading || !query.trim() || selectedModels.length === 0}
+                  onClick={researchMode === 'quick' ? handleResearch : handleDeepResearch}
+                  disabled={isLoading || isDeepResearching || !query.trim() || (researchMode === 'quick' && selectedModels.length === 0)}
                   className="w-full"
                   size="lg"
                 >
-                  <Search className="h-4 w-4 mr-2" />
-                  {isLoading ? 'Researching...' : 'Start Research'}
+                  {researchMode === 'quick' ? (
+                    <>
+                      <Search className="h-4 w-4 mr-2" />
+                      {isLoading ? 'Researching...' : 'Start Quick Research'}
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      {isDeepResearching ? 'Generating Report...' : 'Start Deep Research'}
+                    </>
+                  )}
                 </Button>
               </CardContent>
             </Card>
