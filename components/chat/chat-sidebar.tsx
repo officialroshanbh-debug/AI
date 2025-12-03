@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Plus, MessageSquare } from 'lucide-react';
 import type { ChatSummary } from '@/app/actions/chat';
-import { deleteChat, createChat } from '@/app/actions/chat';
+import { deleteChat } from '@/app/actions/chat';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -57,7 +57,6 @@ function groupChats(chats: ChatSummary[]): GroupedChats[] {
 export function ChatSidebar({ chats, currentChatId }: ChatSidebarProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
 
   const grouped = useMemo(() => groupChats(chats), [chats]);
 
@@ -104,10 +103,9 @@ export function ChatSidebar({ chats, currentChatId }: ChatSidebarProps) {
           variant="outline"
           className="h-8 w-8 rounded-xl bg-background/60"
           onClick={handleNewChat}
-          disabled={isCreating}
           aria-label="New chat"
         >
-          <Plus className={cn('h-4 w-4', isCreating && 'animate-spin')} />
+          <Plus className="h-4 w-4" />
         </Button>
       </div>
 
