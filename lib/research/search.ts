@@ -7,7 +7,7 @@ export interface SearchResult {
     snippet: string;
 }
 
-export async function performWebSearch(query: string): Promise<SearchResult[]> {
+export async function performWebSearch(query: string, limit: number = 5): Promise<SearchResult[]> {
     const results: SearchResult[] = [];
     console.log(`[Search] Performing search for: "${query}"`);
 
@@ -31,7 +31,7 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
             if (data.data && Array.isArray(data.data) && data.data.length > 0) {
                 console.log(`[Search] Jina returned ${data.data.length} results`);
                 // Jina returns a list of results directly
-                for (const item of data.data.slice(0, 5)) {
+                for (const item of data.data.slice(0, limit)) {
                     results.push({
                         url: item.url,
                         title: item.title,
@@ -48,7 +48,7 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
         // 2. Fallback to Google Custom Search
         if (process.env.GOOGLE_SEARCH_API_KEY && process.env.GOOGLE_SEARCH_ENGINE_ID) {
             const fallbackSearch = await fetch(
-                `https://www.googleapis.com/customsearch/v1?key=${process.env.GOOGLE_SEARCH_API_KEY}&cx=${process.env.GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}&num=5`
+                `https://www.googleapis.com/customsearch/v1?key=${process.env.GOOGLE_SEARCH_API_KEY}&cx=${process.env.GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}&num=${limit}`
             );
 
             if (fallbackSearch.ok) {

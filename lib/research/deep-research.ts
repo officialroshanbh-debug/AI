@@ -91,8 +91,8 @@ export async function researchSection(
             .filter(s => {
                 const content = (s.content + s.title + s.snippet).toLowerCase();
                 return section.keywords.some(kw => content.includes(kw.toLowerCase()));
-            })
-            .slice(0, 5);
+            });
+        // Use all found sources (up to the limit passed in)
 
         filtered.forEach(source => {
             sourceContext += `\n\nSource: ${source.title}\nURL: ${source.url}\nContent: ${source.content.substring(0, 2000)}\n`;
@@ -156,27 +156,27 @@ export async function performDeepResearch(
         onProgress?.('Generating research outline...', 10);
         const outline = await generateOutline(query);
 
-        // Step 2: Get web sources for the main query
-        onProgress?.('Searching web for sources...', 20);
-        let webSources: Array<{ url: string; title: string; content: string; snippet: string }> = [];
-
-        // Try to fetch web sources (optional, will work without them too)
-        try {
-            webSources = await performWebSearch(query);
-        } catch (error) {
-            console.warn('Web search failed, continuing without sources:', error);
-        }
-
-        // Step 3: Research each section
+        // Step 2: Research each section dynamically
         const sections: ResearchSection[] = [];
         const totalSections = outline.sections.length;
 
         for (let i = 0; i < outline.sections.length; i++) {
             const section = outline.sections[i];
-            const progress = 20 + ((i + 1) / totalSections) * 70;
+            const progress = 10 + ((i + 1) / totalSections) * 80;
+
+            // Search specifically for this section
+            const sectionQuery = `${query} ${section.keywords.join(' ')}`;
             onProgress?.(`Researching: ${section.title} (${i + 1}/${totalSections})`, progress);
 
-            const researchedSection = await researchSection(section, query, webSources);
+            let sectionSources: Array<{ url: string; title: string; content: string; snippet: string }> = [];
+            try {
+                // Fetch 5 sources per section
+                sectionSources = await performWebSearch(sectionQuery, 5);
+            } catch (error) {
+                console.warn(`Search failed for section ${section.title}:`, error);
+            }
+
+            const researchedSection = await researchSection(section, query, sectionSources);
             sections.push(researchedSection);
             onSectionComplete?.(researchedSection);
         }
