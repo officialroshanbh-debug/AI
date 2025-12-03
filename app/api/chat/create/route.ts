@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
         const { title, modelId } = validationResult.data;
 
-        const chat = await createChat(title, modelId);
+        const chat = await createChat(title, modelId as any);
 
         return NextResponse.json({ chatId: chat.id, title: chat.title });
     } catch (error) {
