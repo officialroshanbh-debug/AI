@@ -322,7 +322,6 @@ export default function ResearchPage() {
   };
 
   const handleExportPDF = async () => {
-    // @ts-expect-error - jspdf import might fail in some environments
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
 
