@@ -88,7 +88,6 @@ export async function researchSection(
 
     if (webSources && webSources.length > 0) {
         // Find sources relevant to this section
-        const sectionKeywords = section.keywords.join(' ').toLowerCase();
         const filtered = webSources
             .filter(s => {
                 const content = (s.content + s.title + s.snippet).toLowerCase();

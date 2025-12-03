@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
                 });
 
                 if (searchResponse.ok) {
-                    const searchData = await searchResponse.json();
+                    await searchResponse.json();
 
                     // Jina search returns data in a text format, we'll need to parse it
                     // For now, let's use Google Custom Search as fallback for better structured results

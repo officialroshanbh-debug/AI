@@ -78,7 +78,8 @@ export async function POST(req: NextRequest) {
     }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
+    ", "StartLine": 81
     try {
         const session = await auth();
         if (!session?.user) {
