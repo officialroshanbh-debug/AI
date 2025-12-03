@@ -36,8 +36,6 @@ export default function ResearchPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [researchMode, setResearchMode] = useState<'quick' | 'deep'>('quick');
-  const [deepResearchResult, setDeepResearchResult] = useState<DeepResearchResult | null>(null);
-  const [researchProgress, setResearchProgress] = useState({ status: '', progress: 0 });
   const [isDeepResearching, setIsDeepResearching] = useState(false);
 
   // Available models for research
