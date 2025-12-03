@@ -302,6 +302,9 @@ export async function POST(req: NextRequest) {
                   modelId: model,
                   tokens: Math.ceil(fullContent.length / 4),
                 },
+              }).catch(err => {
+                console.error('Failed to log usage:', err);
+                return null;
               });
 
               // Track promises to ensure they complete

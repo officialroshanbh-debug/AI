@@ -6,6 +6,7 @@ const openai = new OpenAI({
 });
 
 import { ResearchOutline, ResearchSection, DeepResearchResult } from '@/types/research';
+import { performWebSearch } from './search';
 
 /**
  * Helper to try multiple models if one fails (e.g. due to access rights)
@@ -160,16 +161,7 @@ export async function performDeepResearch(
 
         // Try to fetch web sources (optional, will work without them too)
         try {
-            const searchResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/research/search`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query }),
-            });
-
-            if (searchResponse.ok) {
-                const data = await searchResponse.json();
-                webSources = data.results || [];
-            }
+            webSources = await performWebSearch(query);
         } catch (error) {
             console.warn('Web search failed, continuing without sources:', error);
         }
