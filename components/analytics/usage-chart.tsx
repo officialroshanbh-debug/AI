@@ -71,7 +71,7 @@ export function UsageChart({
                             }}
                         />
                         <Legend />
-                        {React.createElement(DataComponent, {
+                        {React.createElement(DataComponent as any, {
                             type: 'monotone',
                             dataKey: dataKey,
                             stroke: color,
