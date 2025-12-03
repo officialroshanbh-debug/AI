@@ -4,125 +4,132 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 const exportSchema = z.object({
-    chatId: z.string(),
-    format: z.enum(['pdf', 'markdown', 'html', 'json']),
+  chatId: z.string(),
+  format: z.enum(['pdf', 'markdown', 'html', 'json']),
 });
 
 export async function POST(req: NextRequest) {
-    try {
-        const session = await auth();
-        if (!session?.user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        const userId = (session.user as { id?: string }).id;
-        if (!userId) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        const body = await req.json();
-        const validationResult = exportSchema.safeParse(body);
-
-        if (!validationResult.success) {
-            return NextResponse.json(
-                { error: 'Invalid export request', details: validationResult.error.errors },
-                { status: 400 }
-            );
-        }
-
-        const { chatId, format } = validationResult.data;
-
-        // Fetch chat with messages
-        const chat = await prisma.chat.findUnique({
-            where: { id: chatId, userId },
-            include: {
-                messages: {
-                    orderBy: { createdAt: 'asc' }
-                }
-            }
-        });
-
-        if (!chat) {
-            return NextResponse.json({ error: 'Chat not found' }, { status: 404 });
-        }
-
-        // Generate export based on format
-        let content: string;
-        let contentType: string;
-        let filename: string;
-
-        switch (format) {
-            case 'json':
-                content = JSON.stringify({
-                    title: chat.title,
-                    model: chat.modelId,
-                    createdAt: chat.createdAt,
-                    messages: chat.messages.map(m => ({
-                        role: m.role,
-                        content: m.content,
-                        timestamp: m.createdAt,
-                    }))
-                }, null, 2);
-                contentType = 'application/json';
-                filename = `chat-${chatId}.json`;
-                break;
-
-            case 'markdown':
-                content = generateMarkdown(chat);
-                contentType = 'text/markdown';
-                filename = `chat-${chatId}.md`;
-                break;
-
-            case 'html':
-                content = generateHTML(chat);
-                contentType = 'text/html';
-                filename = `chat-${chatId}.html`;
-                break;
-
-            case 'pdf':
-                // For PDF, return the HTML content
-                // Frontend will use jsPDF to convert it
-                content = generateHTML(chat);
-                contentType = 'text/html';
-                filename = `chat-${chatId}.html`;
-                break;
-
-            default:
-                return NextResponse.json({ error: 'Unsupported format' }, { status: 400 });
-        }
-
-        return new NextResponse(content, {
-            headers: {
-                'Content-Type': contentType,
-                'Content-Disposition': `attachment; filename="${filename}"`,
-            },
-        });
-    } catch (error) {
-        console.error('[Export API] Error:', error);
-        return NextResponse.json(
-            { error: 'Failed to export chat' },
-            { status: 500 }
-        );
-    }
-}
-
-function generateMarkdown(chat: any): string {
-    let md = `# ${chat.title}\n\n`;
-    md += `**Model:** ${chat.modelId}\n`;
-    md += `**Created:** ${new Date(chat.createdAt).toLocaleString()}\n\n`;
-    md += `---\n\n`;
-
-    for (const message of chat.messages) {
-        const role = message.role === 'user' ? '👤 User' : '🤖 Assistant';
-        md += `### ${role}\n\n`;
-        md += `${message.content}\n\n`;
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    return md;
+    const userId = (session.user as { id?: string }).id;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const validationResult = exportSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid export request', details: validationResult.error.errors },
+        { status: 400 }
+      );
+    }
+
+    const { chatId, format } = validationResult.data;
+
+    // Fetch chat with messages
+    const chat = await prisma.chat.findUnique({
+      where: { id: chatId, userId },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'asc' }
+        }
+      }
+    });
+
+    if (!chat) {
+      return NextResponse.json({ error: 'Chat not found' }, { status: 404 });
+    }
+
+    // Generate export based on format
+    let content: string;
+    let contentType: string;
+    let filename: string;
+
+    switch (format) {
+      case 'json':
+        content = JSON.stringify({
+          title: chat.title,
+          model: chat.modelId,
+          createdAt: chat.createdAt,
+          messages: chat.messages.map(m => ({
+            role: m.role,
+            content: m.content,
+            timestamp: m.createdAt,
+          }))
+        }, null, 2);
+        contentType = 'application/json';
+        filename = `chat-${chatId}.json`;
+        break;
+
+      case 'markdown':
+        content = generateMarkdown(chat);
+        contentType = 'text/markdown';
+        filename = `chat-${chatId}.md`;
+        break;
+
+      case 'html':
+        content = generateHTML(chat);
+        contentType = 'text/html';
+        filename = `chat-${chatId}.html`;
+        break;
+
+      case 'pdf':
+        // For PDF, return the HTML content
+        // Frontend will use jsPDF to convert it
+        content = generateHTML(chat);
+        contentType = 'text/html';
+        filename = `chat-${chatId}.html`;
+        break;
+
+      default:
+        return NextResponse.json({ error: 'Unsupported format' }, { status: 400 });
+    }
+
+    return new NextResponse(content, {
+      headers: {
+        'Content-Type': contentType,
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      },
+    });
+  } catch (error) {
+    console.error('[Export API] Error:', error);
+    return NextResponse.json(
+      { error: 'Failed to export chat' },
+      { status: 500 }
+    );
+  }
 }
 
-function generateHTML(chat: any): string {
-    let html = `<!DOCTYPE html>
+interface ChatWithMessages {
+  title: string;
+  modelId: string;
+  createdAt: Date;
+  messages: Array<{ role: string; content: string; createdAt: Date }>;
+}
+
+function generateMarkdown(chat: ChatWithMessages): string {
+  let md = `# ${chat.title}\n\n`;
+  md += `**Model:** ${chat.modelId}\n`;
+  md += `**Created:** ${new Date(chat.createdAt).toLocaleString()}\n\n`;
+  md += `---\n\n`;
+
+  for (const message of chat.messages) {
+    const role = message.role === 'user' ? '👤 User' : '🤖 Assistant';
+    md += `### ${role}\n\n`;
+    md += `${message.content}\n\n`;
+  }
+
+  return md;
+}
+
+function generateHTML(chat: ChatWithMessages): string {
+  let html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -192,31 +199,31 @@ function generateHTML(chat: any): string {
   </div>
 `;
 
-    for (const message of chat.messages) {
-        const className = message.role === 'user' ? 'user' : 'assistant';
-        const roleIcon = message.role === 'user' ? '👤' : '🤖';
-        html += `
+  for (const message of chat.messages) {
+    const className = message.role === 'user' ? 'user' : 'assistant';
+    const roleIcon = message.role === 'user' ? '👤' : '🤖';
+    html += `
   <div class="message ${className}">
     <div class="role">${roleIcon} ${message.role}</div>
     <div class="content">${escapeHtml(message.content)}</div>
   </div>
 `;
-    }
+  }
 
-    html += `
+  html += `
 </body>
 </html>`;
 
-    return html;
+  return html;
 }
 
 function escapeHtml(text: string): string {
-    const map: Record<string, string> = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    return text.replace(/[&<>"']/g, m => map[m]);
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, m => map[m]);
 }

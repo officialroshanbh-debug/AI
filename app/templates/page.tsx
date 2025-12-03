@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'use client';
+
 import { useRouter } from 'next/navigation';
-import { TemplatesBrowser } from '@/components/prompts/templates-browser';
+import { PromptTemplatesBrowser } from '@/components/prompts/templates-browser';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
@@ -24,7 +25,7 @@ export default function TemplatesPage() {
                 </Button>
             </div>
 
-            <TemplatesBrowser />
+            <PromptTemplatesBrowser />
         </div>
     );
 }
