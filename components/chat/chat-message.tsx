@@ -7,10 +7,9 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { User, Bot, Copy, Check, RefreshCw, ExternalLink, BookOpen } from 'lucide-react';
+import { User, Bot, Copy, Check, RefreshCw, BookOpen } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { Message as MessageType, Citation } from '@/types/ai-models';
 
