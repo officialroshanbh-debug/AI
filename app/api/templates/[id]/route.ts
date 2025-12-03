@@ -14,8 +14,10 @@ const updateSchema = z.object({
 
 export async function GET(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
+
     try {
         const session = await auth();
         if (!session?.user) {
@@ -23,7 +25,7 @@ export async function GET(
         }
 
         const template = await prisma.promptTemplate.findUnique({
-            where: { id: params.id }
+            where: { id }
         });
 
         if (!template) {
@@ -48,8 +50,10 @@ export async function GET(
 
 export async function PUT(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
+
     try {
         const session = await auth();
         if (!session?.user) {
@@ -63,7 +67,7 @@ export async function PUT(
 
         // Check if template exists and user owns it
         const existing = await prisma.promptTemplate.findUnique({
-            where: { id: params.id }
+            where: { id }
         });
 
         if (!existing) {
@@ -88,7 +92,7 @@ export async function PUT(
 
         // Update template
         const template = await prisma.promptTemplate.update({
-            where: { id: params.id },
+            where: { id },
             data: {
                 ...(data.name && { name: data.name }),
                 ...(data.description !== undefined && { description: data.description }),
@@ -112,8 +116,10 @@ export async function PUT(
 
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
+
     try {
         const session = await auth();
         if (!session?.user) {
@@ -127,7 +133,7 @@ export async function DELETE(
 
         // Check if template exists and user owns it
         const existing = await prisma.promptTemplate.findUnique({
-            where: { id: params.id }
+            where: { id }
         });
 
         if (!existing) {
@@ -140,7 +146,7 @@ export async function DELETE(
 
         // Delete template
         await prisma.promptTemplate.delete({
-            where: { id: params.id }
+            where: { id }
         });
 
         return NextResponse.json({ success: true });
