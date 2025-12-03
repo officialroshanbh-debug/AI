@@ -1,17 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Share2, Download, BarChart3, Globe } from 'lucide-react';
+import { Search, Share2, Download, BarChart3, Globe, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MODEL_CONFIGS, MODEL_IDS, type ModelId } from '@/types/ai-models';
 import { ResearchComparisonChart } from '@/components/research/comparison-chart';
 import { ResearchResults } from '@/components/research/research-results';
 import { Citations } from '@/components/research/citations';
 import { SourcePreviewModal } from '@/components/research/source-preview-modal';
+import { ResearchProgress } from '@/components/research/research-progress';
+import type { DeepResearchResult } from '@/lib/research/deep-research';
 
 interface ResearchResult {
   modelId: ModelId;
@@ -39,6 +42,12 @@ export default function ResearchPage() {
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const [webSources, setWebSources] = useState<WebSource[]>([]);
   const [previewSource, setPreviewSource] = useState<WebSource | null>(null);
+
+  // Deep Research state
+  const [researchMode, setResearchMode] = useState<'quick' | 'deep'>('quick');
+  const [deepResearchResult, setDeepResearchResult] = useState<DeepResearchResult | null>(null);
+  const [researchProgress, setResearchProgress] = useState({ status: '', progress: 0 });
+  const [isDeepResearching, setIsDeepResearching] = useState(false);
 
   const availableModels = [
     { id: MODEL_IDS.GPT_4_1, name: 'GPT-4.1' },
