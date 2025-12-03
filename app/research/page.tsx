@@ -84,30 +84,28 @@ export default function ResearchPage() {
     setIsLoading(true);
     setError(null);
     setResults([]);
-    setWebSources([]);
+    setWebSources([]); // Clear previous sources
 
     try {
       const researchResults: ResearchResult[] = [];
       let sources: WebSource[] = [];
 
-      // Step 1: If web search is enabled, fetch sources first
-      if (webSearchEnabled) {
-        try {
-          const searchResponse = await fetch('/api/research/search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query }),
-          });
+      // Step 1: Fetch web sources for context (always enabled - it's free!)
+      try {
+        const searchResponse = await fetch('/api/research/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query }),
+        });
 
-          if (searchResponse.ok) {
-            const searchData = await searchResponse.json();
-            sources = searchData.results || [];
-            setWebSources(sources);
-          }
-        } catch (err) {
-          console.error('Web search failed:', err);
-          // Continue without web sources
+        if (searchResponse.ok) {
+          const searchData = await searchResponse.json();
+          sources = searchData.results || [];
+          setWebSources(sources);
         }
+      } catch (err) {
+        console.error('Web search failed:', err);
+        // Continue without web sources
       }
 
       // Call each selected model in parallel
