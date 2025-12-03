@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     LineChart,
@@ -42,7 +43,7 @@ export function UsageChart({
     }));
 
     const ChartComponent = type === 'line' ? LineChart : BarChart;
-    const DataComponent: typeof Line | typeof Bar = type === 'line' ? Line : Bar;
+    const DataComponent = type === 'line' ? Line : Bar;
 
     return (
         <Card>
@@ -70,17 +71,18 @@ export function UsageChart({
                             }}
                         />
                         <Legend />
-                        <DataComponent
-                            type="monotone"
-                            dataKey={dataKey}
-                            stroke={color}
-                            fill={color}
-                            strokeWidth={2}
-                            name={title}
-                        />
+                        {React.createElement(DataComponent, {
+                            type: 'monotone',
+                            dataKey: dataKey,
+                            stroke: color,
+                            fill: color,
+                            strokeWidth: 2,
+                            name: title,
+                        })}
                     </ChartComponent>
-                </ResponsiveContainer>
-            </CardContent>
-        </Card>
+                </ChartComponent>
+            </ResponsiveContainer>
+        </CardContent>
+        </Card >
     );
 }
