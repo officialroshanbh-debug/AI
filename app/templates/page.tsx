@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'use client';
-
 import { useRouter } from 'next/navigation';
 import { PromptTemplatesBrowser } from '@/components/prompts/templates-browser';
 import { Button } from '@/components/ui/button';
