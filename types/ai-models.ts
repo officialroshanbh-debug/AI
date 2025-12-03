@@ -1,8 +1,18 @@
 export type ModelRole = 'user' | 'assistant' | 'system';
 
+export interface Citation {
+  id?: string;
+  source: string;
+  quote?: string;
+  relevance?: number;
+  title?: string;
+  url?: string;
+}
+
 export interface Message {
   role: ModelRole;
   content: string;
+  citations?: Citation[];
 }
 
 export interface ModelResponse {

@@ -6,6 +6,7 @@ import { MODEL_CONFIGS, type ModelId } from '@/types/ai-models';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
+import { WebResearchAgent } from '@/lib/agents/web-research-agent';
 
 // Model mapping with fallbacks - using more universally available models
 const OPENAI_MODEL_MAP: Record<string, string[]> = {
@@ -166,8 +167,9 @@ export async function POST(req: NextRequest) {
       : Promise.resolve(null);
 
     // Check if user is asking about weather
-    const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content.toLowerCase() || '';
-    const isWeatherQuery = /weather|temperature|rain|snow|forecast|climate|hot|cold|humidity|wind/.test(lastUserMessage);
+    const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content || '';
+    const lastUserMessageLower = lastUserMessage.toLowerCase();
+    const isWeatherQuery = /weather|temperature|rain|snow|forecast|climate|hot|cold|humidity|wind/.test(lastUserMessageLower);
 
     // Fetch weather data if user is asking about weather and location is provided
     let weatherData = null;
@@ -184,11 +186,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // WEB RESEARCH INTEGRATION
+    let researchData = null;
+    if (WebResearchAgent.detectIntent(lastUserMessage)) {
+      researchData = await WebResearchAgent.research(lastUserMessage);
+    }
+
     // Get provider and start streaming immediately (don't wait for user message save)
     const provider = modelRouter.getProvider(model);
 
-    // Enhance messages with weather context if available
+    // Enhance messages with context
     const enhancedMessages = [...messages];
+
+    // Add weather context
     if (weatherData && isWeatherQuery) {
       const weatherContext = `Current weather in ${weatherData.location.name}, ${weatherData.location.country}:
 - Temperature: ${weatherData.current.temp}°C (feels like ${weatherData.current.feels_like}°C)
@@ -197,10 +207,17 @@ export async function POST(req: NextRequest) {
 - Wind Speed: ${weatherData.current.wind_speed} km/h
 - Pressure: ${weatherData.current.pressure} hPa`;
 
-      // Add weather context as a system message before the last user message
       enhancedMessages.splice(-1, 0, {
         role: 'system',
         content: weatherContext,
+      });
+    }
+
+    // Add research context
+    if (researchData && researchData.context) {
+      enhancedMessages.splice(-1, 0, {
+        role: 'system',
+        content: researchData.context,
       });
     }
 
@@ -264,6 +281,13 @@ export async function POST(req: NextRequest) {
         try {
           // Start user message save in parallel (don't block on it)
           dbWritePromises.push(userMessagePromise);
+
+          // Stream citations if available
+          if (researchData && researchData.citations.length > 0) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ citations: researchData.citations })}\n\n`)
+            );
+          }
 
           // Start streaming immediately
           for await (const chunk of provider.streamModel({

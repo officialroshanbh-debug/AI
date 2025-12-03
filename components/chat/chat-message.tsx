@@ -12,14 +12,7 @@ import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import type { Message as MessageType } from '@/types/ai-models';
-
-interface Citation {
-  id: string;
-  source: string;
-  quote?: string;
-  relevance?: number;
-}
+import type { Message as MessageType, Citation } from '@/types/ai-models';
 
 interface ChatMessageProps {
   message: MessageType & { citations?: Citation[] };

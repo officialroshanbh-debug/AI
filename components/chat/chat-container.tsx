@@ -248,15 +248,18 @@ export function ChatContainer({
               setIsStreaming(false);
               return;
             }
-
             try {
               const parsed = JSON.parse(data);
               if (parsed.content) {
                 assistantMessage.content += parsed.content;
                 setMessages([...newMessages, assistantMessage]);
               }
+              if (parsed.citations) {
+                assistantMessage.citations = parsed.citations;
+                setMessages([...newMessages, assistantMessage]);
+              }
             } catch {
-              // Skip invalid JSON
+              // ignore invalid JSON
             }
           }
         }
