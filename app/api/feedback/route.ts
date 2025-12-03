@@ -46,27 +46,35 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Message not found' }, { status: 404 });
         }
 
+
         // Create or update feedback
-        const feedback = await prisma.feedback.upsert({
+        // First, check if feedback already exists
+        const existingFeedback = await prisma.feedback.findFirst({
             where: {
-                messageId_userId: {
-                    messageId,
-                    userId,
-                },
-            },
-            update: {
-                rating,
-                category,
-                comment,
-            },
-            create: {
                 messageId,
                 userId,
-                rating,
-                category,
-                comment,
             },
         });
+
+        const feedback = existingFeedback
+            ? await prisma.feedback.update({
+                where: { id: existingFeedback.id },
+                data: {
+                    rating,
+                    category,
+                    comment,
+                },
+            })
+            : await prisma.feedback.create({
+                data: {
+                    messageId,
+                    userId,
+                    rating,
+                    category,
+                    comment,
+                },
+            });
+
 
         return NextResponse.json({ success: true, feedback }, { status: 201 });
     } catch (error) {
