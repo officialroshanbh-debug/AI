@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, forwardRef } from 'react';
-import { Send, Paperclip } from 'lucide-react';
+import { Send, Paperclip, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -18,10 +18,11 @@ interface ChatInputProps {
   value?: string;
   onChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onFileSelect?: (files: FileList) => void;
+  isUploading?: boolean;
 }
 
 export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
-  ({ onSend, disabled, placeholder, value, onChange, onFileSelect }, ref) => {
+  ({ onSend, disabled, placeholder, value, onChange, onFileSelect, isUploading }, ref) => {
     const [internalMessage, setInternalMessage] = useState('');
     const internalRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -67,6 +68,10 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
       if (files && files.length > 0 && onFileSelect) {
         onFileSelect(files);
       }
+      // Reset input so the same file can be selected again if needed
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     };
 
     return (
@@ -82,13 +87,17 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
                 <Button
                   type="button"
                   onClick={handleFileClick}
-                  disabled={disabled}
+                  disabled={disabled || isUploading}
                   size="icon"
                   variant="outline"
                   className="h-[52px] w-[52px] md:h-[60px] md:w-[60px] shrink-0"
                   aria-label="Attach files"
                 >
-                  <Paperclip className="h-4 w-4 md:h-5 md:w-5" aria-hidden="true" />
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-4 w-4 md:h-5 md:w-5" aria-hidden="true" />
+                  )}
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="top">

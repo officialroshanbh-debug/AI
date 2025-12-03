@@ -7,6 +7,7 @@ import { ModelSelector } from './model-selector';
 import { ChatSkeleton } from './chat-skeleton';
 import { TemplateSelector } from './template-selector';
 import { ExportButton } from './export-button';
+import { AttachmentPreview } from './attachment-preview';
 import { Button } from '@/components/ui/button';
 import { Trash2, FileText } from 'lucide-react';
 import type { Message, ModelId } from '@/types/ai-models';
@@ -376,11 +377,16 @@ export function ChatContainer({
         </Suspense>
 
         <div className="shrink-0 border-t bg-background/80 backdrop-blur-sm">
+          <AttachmentPreview
+            attachments={attachments}
+            onRemove={(id) => setAttachments((prev) => prev.filter((a) => a.id !== id))}
+          />
           <ChatInput
             ref={inputRef}
             onSend={handleSend}
             onFileSelect={handleFileSelect}
             disabled={isStreaming || isUploading}
+            isUploading={isUploading}
           />
         </div>
       </div>
