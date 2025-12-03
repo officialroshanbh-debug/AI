@@ -28,6 +28,8 @@ export function ChatContainer({
   const [currentModel, setCurrentModel] = useState<ModelId>(initialModel);
   const [isStreaming, setIsStreaming] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { location } = useLocation();
@@ -55,6 +57,39 @@ export function ChatContainer({
   const handleClearChat = () => {
     if (window.confirm('Are you sure you want to clear the chat history?')) {
       setMessages([]);
+    }
+  };
+
+  const handleFileSelect = async (files: FileList) => {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(file => {
+        formData.append('files', file);
+      });
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      const successfulUploads = data.results.filter((r: any) => r.success);
+
+      setAttachments(prev => [
+        ...prev,
+        ...successfulUploads.map((r: any) => r.mediaFile),
+      ]);
+    } catch (error) {
+      console.error('File upload error:', error);
+      alert('Failed to upload files. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -145,6 +180,7 @@ export function ChatContainer({
           messages: newMessages,
           modelId: currentModel,
           chatId,
+          ...(attachments.length > 0 && { attachments }),
           ...(location && {
             userLocation: {
               latitude: location.latitude,
@@ -155,6 +191,9 @@ export function ChatContainer({
           }),
         }),
       });
+
+      // Clear attachments after sending
+      setAttachments([]);
 
       if (!response.body) {
         throw new Error('No response body');
@@ -304,7 +343,12 @@ export function ChatContainer({
         </Suspense>
 
         <div className="shrink-0 border-t bg-background/80 backdrop-blur-sm">
-          <ChatInput ref={inputRef} onSend={handleSend} disabled={isStreaming} />
+          <ChatInput
+            ref={inputRef}
+            onSend={handleSend}
+            onFileSelect={handleFileSelect}
+            disabled={isStreaming || isUploading}
+          />
         </div>
       </div>
     </div>

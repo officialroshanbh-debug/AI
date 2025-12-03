@@ -30,6 +30,16 @@ const chatRequestSchema = z.object({
   chatId: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().positive().optional(),
+  attachments: z.array(
+    z.object({
+      id: z.string(),
+      type: z.enum(['image', 'pdf', 'document', 'audio', 'video', 'screenshot']),
+      url: z.string().url(),
+      filename: z.string(),
+      mimeType: z.string(),
+      analysis: z.any().optional(),
+    })
+  ).optional(),
   userLocation: z.object({
     latitude: z.number(),
     longitude: z.number(),
@@ -43,16 +53,16 @@ export async function POST(req: NextRequest) {
     // Authentication - in NextAuth v5, auth() reads from cookies() automatically
     // But we need to ensure cookies are available in the request context
     const session = await auth();
-    
+
     if (!session?.user) {
       const cookieHeader = req.headers.get('cookie');
       const cookieStore = await cookies();
-      const sessionTokenName = process.env.NODE_ENV === 'production' 
+      const sessionTokenName = process.env.NODE_ENV === 'production'
         ? '__Secure-next-auth.session-token'
         : 'next-auth.session-token';
       const sessionToken = cookieStore.get(sessionTokenName);
       const allCookies = cookieStore.getAll();
-      
+
       console.error('[Chat API] No session found', {
         hasCookieHeader: !!cookieHeader,
         cookieCount: allCookies.length,
@@ -62,7 +72,7 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+
     const userId = (session.user as { id?: string }).id;
     if (!userId) {
       console.error('[Chat API] No user ID in session', { user: session.user });
@@ -78,7 +88,7 @@ export async function POST(req: NextRequest) {
     // Validate request body with Zod
     const body = await req.json();
     const validationResult = chatRequestSchema.safeParse(body);
-    
+
     if (!validationResult.success) {
       return NextResponse.json(
         { error: 'Invalid request', details: validationResult.error.errors },
@@ -86,7 +96,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { messages, modelId, chatId, temperature, maxTokens, userLocation } = validationResult.data;
+    const { messages, modelId, chatId, temperature, maxTokens, attachments, userLocation } = validationResult.data;
 
     const model = (modelId || 'gpt-4.1') as ModelId;
     const config = MODEL_CONFIGS[model];
@@ -132,7 +142,7 @@ export async function POST(req: NextRequest) {
       if (error && typeof error === 'object' && 'code' in error && error.code === 'P2021') {
         console.error('[Chat API] Database schema error - tables not found. Please run migrations.');
         return NextResponse.json(
-          { 
+          {
             error: 'Database not initialized',
             message: 'The database tables have not been created. Please ensure migrations have run.'
           },
@@ -146,19 +156,19 @@ export async function POST(req: NextRequest) {
     const lastMessage = messages[messages.length - 1];
     const userMessagePromise = lastMessage.role === 'user'
       ? prisma.message.create({
-          data: {
-            chatId: chat.id,
-            role: 'user',
-            content: lastMessage.content,
-            modelId: model,
-          },
-        })
+        data: {
+          chatId: chat.id,
+          role: 'user',
+          content: lastMessage.content,
+          modelId: model,
+        },
+      })
       : Promise.resolve(null);
 
     // Check if user is asking about weather
     const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content.toLowerCase() || '';
     const isWeatherQuery = /weather|temperature|rain|snow|forecast|climate|hot|cold|humidity|wind/.test(lastUserMessage);
-    
+
     // Fetch weather data if user is asking about weather and location is provided
     let weatherData = null;
     if (isWeatherQuery && userLocation) {
@@ -176,7 +186,7 @@ export async function POST(req: NextRequest) {
 
     // Get provider and start streaming immediately (don't wait for user message save)
     const provider = modelRouter.getProvider(model);
-    
+
     // Enhance messages with weather context if available
     const enhancedMessages = [...messages];
     if (weatherData && isWeatherQuery) {
@@ -192,6 +202,66 @@ export async function POST(req: NextRequest) {
         role: 'system',
         content: weatherContext,
       });
+    }
+
+    // Process attachments if present
+    if (attachments && attachments.length > 0) {
+      // Check if model supports vision (GPT-4V, Claude with vision, etc.)
+      const supportsVision = model.includes('gpt-4') || model.includes('gpt-5');
+
+      if (supportsVision) {
+        // For vision models, we need to format the last user message with images
+        const lastUserIndex = enhancedMessages.length - 1;
+        const imageAttachments = attachments.filter(a => a.type === 'image');
+
+        if (imageAttachments.length > 0) {
+          // Convert to OpenAI vision format
+          const imageContent = imageAttachments.map(img => ({
+            type: 'image_url' as const,
+            image_url: {
+              url: img.url,
+              detail: 'auto' as const,
+            },
+          }));
+
+          // Add image analysis context if available
+          const analysisContext = imageAttachments
+            .filter(img => img.analysis?.description)
+            .map(img => `Image "${img.filename}": ${img.analysis.description}`)
+            .join('\n');
+
+          if (analysisContext) {
+            // Prepend analysis to user's message
+            enhancedMessages[lastUserIndex] = {
+              ...enhancedMessages[lastUserIndex],
+              content: `${analysisContext}\n\nUser: ${enhancedMessages[lastUserIndex].content}`,
+            };
+          }
+
+          console.log('[Chat API] Processed attachments for vision model:', {
+            imageCount: imageAttachments.length,
+            model,
+          });
+        }
+      }
+
+      // For non-image attachments (PDFs, documents), add their content/analysis as context
+      const documentAttachments = attachments.filter(a => a.type === 'pdf' || a.type === 'document');
+      if (documentAttachments.length > 0) {
+        const docContext = documentAttachments
+          .map(doc => {
+            const analysis = doc.analysis as { content?: string; summary?: string } | undefined;
+            return `Document "${doc.filename}":\n${analysis?.summary || analysis?.content || 'Content unavailable'}`;
+          })
+          .join('\n\n');
+
+        if (docContext) {
+          enhancedMessages.splice(-1, 0, {
+            role: 'system',
+            content: `The user has attached the following documents:\n\n${docContext}`,
+          });
+        }
+      }
     }
 
     const stream = new ReadableStream({
