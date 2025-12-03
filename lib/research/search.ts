@@ -9,9 +9,10 @@ export interface SearchResult {
 
 export async function performWebSearch(query: string): Promise<SearchResult[]> {
     const results: SearchResult[] = [];
+    console.log(`[Search] Performing search for: "${query}"`);
 
     try {
-        // Search the web using Jina
+        // 1. Try Jina Search first
         const searchResponse = await fetch(`https://s.jina.ai/${encodeURIComponent(query)}`, {
             headers: {
                 'Accept': 'application/json',
@@ -20,16 +21,33 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
         });
 
         if (searchResponse.ok) {
-            await searchResponse.json();
+            const data = await searchResponse.json();
+            if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+                console.log(`[Search] Jina returned ${data.data.length} results`);
+                // Jina returns a list of results directly
+                for (const item of data.data.slice(0, 5)) {
+                    results.push({
+                        url: item.url,
+                        title: item.title,
+                        content: item.content || '',
+                        snippet: item.description || item.content?.substring(0, 200) || '',
+                    });
+                }
+                return results;
+            }
+        }
 
-            // Jina search returns data in a text format, we'll need to parse it
-            // For now, let's use Google Custom Search as fallback for better structured results
+        console.log('[Search] Jina search failed or returned no results, trying Google fallback');
+
+        // 2. Fallback to Google Custom Search
+        if (process.env.GOOGLE_SEARCH_API_KEY && process.env.GOOGLE_SEARCH_ENGINE_ID) {
             const fallbackSearch = await fetch(
                 `https://www.googleapis.com/customsearch/v1?key=${process.env.GOOGLE_SEARCH_API_KEY}&cx=${process.env.GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}&num=5`
             );
 
             if (fallbackSearch.ok) {
                 const googleData = await fallbackSearch.json();
+                console.log(`[Search] Google returned ${googleData.items?.length || 0} results`);
 
                 // Now scrape each result with Jina Reader
                 for (const item of googleData.items || []) {
@@ -49,6 +67,14 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
                                 content: pageData.content || '',
                                 snippet: pageData.description || item.snippet || '',
                             });
+                        } else {
+                            // If read fails, push basic Google result
+                            results.push({
+                                url: item.link,
+                                title: item.title,
+                                content: '',
+                                snippet: item.snippet || '',
+                            });
                         }
                     } catch (error) {
                         console.error(`Failed to read ${item.link}:`, error);
@@ -61,10 +87,14 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
                         });
                     }
                 }
+            } else {
+                console.error('[Search] Google search failed:', await fallbackSearch.text());
             }
+        } else {
+            console.warn('[Search] Google Search credentials missing, skipping fallback');
         }
     } catch (error) {
-        console.error('Search failed:', error);
+        console.error('[Search] Search failed:', error);
     }
 
     return results;
