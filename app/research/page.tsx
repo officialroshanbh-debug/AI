@@ -10,17 +10,8 @@ import { MODEL_CONFIGS, MODEL_IDS, type ModelId } from '@/types/ai-models';
 import { ResearchComparisonChart } from '@/components/research/comparison-chart';
 import { ResearchResults } from '@/components/research/research-results';
 import { combineReport } from '@/lib/research/utils';
-
-
-interface ResearchResult {
-  modelId: ModelId;
-  modelName: string;
-  response: string;
-  responseTime: number;
-  wordCount: number;
-  readabilityScore: number;
-  tokens?: number;
-}
+import { Progress } from '@/components/ui/progress';
+import { ResearchSection, ResearchResult } from '@/types/research';
 
 interface WebSource {
   url: string;
@@ -29,8 +20,7 @@ interface WebSource {
   snippet: string;
 }
 
-import { Progress } from '@/components/ui/progress';
-import { ResearchSection } from '@/types/research';
+
 
 // ... existing imports
 
@@ -115,9 +105,9 @@ export default function ResearchPage() {
       }
 
       // Call each selected model in parallel
-      const promises = selectedModels.map(async (modelId) => {
+      const promises = selectedModels.map(async (modelId: ModelId) => {
         const startTime = Date.now();
-        const config = MODEL_CONFIGS[modelId];
+        const config = MODEL_CONFIGS[modelId as ModelId];
 
         try {
           const response = await fetch('/api/chat', {
@@ -257,7 +247,7 @@ export default function ResearchPage() {
                 setResearchProgress(parsed.progress);
                 setResearchStatus(parsed.status);
               } else if (parsed.type === 'section') {
-                setStreamedSections(prev => [...prev, parsed.section]);
+                setStreamedSections((prev: ResearchSection[]) => [...prev, parsed.section]);
               } else if (parsed.type === 'result') {
                 const result = parsed.result;
 
@@ -272,6 +262,14 @@ export default function ResearchPage() {
                 };
 
                 setResults([deepResult]);
+
+                // Save research to database
+                try {
+                  const { saveResearch } = await import('@/app/actions/research');
+                  await saveResearch(result);
+                } catch (err) {
+                  console.error('Failed to save research:', err);
+                }
               } else if (parsed.type === 'error') {
                 throw new Error(parsed.error);
               }
@@ -297,17 +295,17 @@ export default function ResearchPage() {
     let markdown = `# Research Results\n\n`;
     markdown += `**Query:** ${query}\n\n`;
     markdown += `**Date:** ${new Date().toLocaleString()}\n\n`;
-    markdown += `**Models Compared:** ${selectedModels.map(id => MODEL_CONFIGS[id].name).join(', ')}\n\n`;
+    markdown += `**Models Compared:** ${selectedModels.map((id: ModelId) => MODEL_CONFIGS[id].name).join(', ')}\n\n`;
 
     if (webSources.length > 0) {
       markdown += `## Sources\n\n`;
-      webSources.forEach((source, i) => {
+      webSources.forEach((source: WebSource, i: number) => {
         markdown += `${i + 1}. [${source.title}](${source.url})\n   ${source.snippet}\n\n`;
       });
     }
 
     markdown += `## Results\n\n`;
-    results.forEach((r) => {
+    results.forEach((r: ResearchResult) => {
       markdown += `### ${r.modelName}\n\n`;
       markdown += `**Response Time:** ${r.responseTime}ms | **Words:** ${r.wordCount} | **Readability:** ${r.readabilityScore}\n\n`;
       markdown += `${r.response}\n\n---\n\n`;
@@ -323,6 +321,7 @@ export default function ResearchPage() {
   };
 
   const handleExportPDF = async () => {
+    // @ts-ignore
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
 
@@ -342,7 +341,7 @@ export default function ResearchPage() {
     yPos += 6;
     doc.text(`Date: ${new Date().toLocaleString()}`, margin, yPos);
     yPos += 6;
-    doc.text(`Models: ${selectedModels.map(id => MODEL_CONFIGS[id].name).join(', ')}`, margin, yPos);
+    doc.text(`Models: ${selectedModels.map((id: ModelId) => MODEL_CONFIGS[id].name).join(', ')}`, margin, yPos);
     yPos += 12;
 
     // Sources
@@ -352,7 +351,7 @@ export default function ResearchPage() {
       yPos += 8;
       doc.setFontSize(9);
 
-      webSources.slice(0, 5).forEach((source, i) => {
+      webSources.slice(0, 5).forEach((source: WebSource, i: number) => {
         if (yPos > 270) {
           doc.addPage();
           yPos = 20;
@@ -366,7 +365,7 @@ export default function ResearchPage() {
     }
 
     // Results
-    results.forEach((r) => {
+    results.forEach((r: ResearchResult) => {
       if (yPos > 250) {
         doc.addPage();
         yPos = 20;
@@ -401,7 +400,7 @@ export default function ResearchPage() {
       query,
       timestamp: new Date().toISOString(),
       models: selectedModels,
-      results: results.map((r) => ({
+      results: results.map((r: ResearchResult) => ({
         model: r.modelName,
         response: r.response,
         metrics: {
@@ -425,11 +424,19 @@ export default function ResearchPage() {
     <div className="min-h-screen bg-background">
       <div className="container py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-serif font-medium tracking-tight mb-2">Research</h1>
-          <p className="text-sm text-muted-foreground">
-            Compare responses from multiple AI models {researchMode === 'deep' && '| Generate comprehensive 10-20 page reports'}
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-serif font-medium tracking-tight mb-2">Research</h1>
+            <p className="text-sm text-muted-foreground">
+              Compare responses from multiple AI models {researchMode === 'deep' && '| Generate comprehensive 10-20 page reports'}
+            </p>
+          </div>
+          <Button variant="outline" asChild>
+            <a href="/research/history">
+              <FileText className="mr-2 h-4 w-4" />
+              History
+            </a>
+          </Button>
         </div>
 
         {/* Mode Toggle */}
