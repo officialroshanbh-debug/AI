@@ -4,8 +4,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
+
     try {
         const session = await auth();
         if (!session?.user) {
@@ -19,7 +21,7 @@ export async function DELETE(
 
         // Check if key exists and user owns it
         const existing = await prisma.apiKey.findUnique({
-            where: { id: params.id }
+            where: { id }
         });
 
         if (!existing) {
@@ -32,7 +34,7 @@ export async function DELETE(
 
         // Revoke key (soft delete)
         await prisma.apiKey.update({
-            where: { id: params.id },
+            where: { id },
             data: { revoked: true }
         });
 
