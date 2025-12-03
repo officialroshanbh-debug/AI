@@ -2,10 +2,18 @@ import { auth } from '@/auth';
 import { createChat } from '@/app/actions/chat';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { MODEL_IDS } from '@/types/ai-models';
 
 const createChatSchema = z.object({
     title: z.string().optional(),
-    modelId: z.string().optional(),
+    modelId: z.enum([
+        MODEL_IDS.GPT_5_1,
+        MODEL_IDS.GPT_4_1,
+        MODEL_IDS.O3_MINI,
+        MODEL_IDS.GEMINI_2_0,
+        MODEL_IDS.CLAUDE_3_7,
+        MODEL_IDS.HIMALAYA,
+    ] as const).optional(),
 });
 
 export async function POST(req: NextRequest) {
