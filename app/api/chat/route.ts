@@ -171,20 +171,7 @@ export async function POST(req: NextRequest) {
     const lastUserMessageLower = lastUserMessage.toLowerCase();
     const isWeatherQuery = /weather|temperature|rain|snow|forecast|climate|hot|cold|humidity|wind/.test(lastUserMessageLower);
 
-    // Fetch weather data if user is asking about weather and location is provided
-    let weatherData = null;
-    if (isWeatherQuery && userLocation) {
-      try {
-        const weatherResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/weather?lat=${userLocation.latitude}&lon=${userLocation.longitude}&city=${userLocation.city || ''}`
-        );
-        if (weatherResponse.ok) {
-          weatherData = await weatherResponse.json();
-        }
-      } catch (error) {
-        console.error('[Chat API] Failed to fetch weather:', error);
-      }
-    }
+    // Weather fetch moved inside stream for performance
 
     // WEB RESEARCH INTEGRATION
     const stream = new ReadableStream({
@@ -199,10 +186,25 @@ export async function POST(req: NextRequest) {
 
           // WEB RESEARCH INTEGRATION (Inside stream for progress updates)
           let researchData = null;
+          let weatherData = null;
+
+          // Parallelize research and weather fetch
+          const tasks: Promise<any>[] = [];
+
           if (WebResearchAgent.detectIntent(lastUserMessage)) {
-            researchData = await WebResearchAgent.research(lastUserMessage, (status) => {
+            tasks.push(WebResearchAgent.research(lastUserMessage, (status) => {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status })}\n\n`));
-            });
+            }).then(res => researchData = res));
+          }
+
+          if (isWeatherQuery && userLocation) {
+            tasks.push(fetch(
+              `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/weather?lat=${userLocation.latitude}&lon=${userLocation.longitude}&city=${userLocation.city || ''}`
+            ).then(res => res.ok ? res.json() : null).then(data => weatherData = data).catch(err => console.error('Weather fetch failed:', err)));
+          }
+
+          if (tasks.length > 0) {
+            await Promise.all(tasks);
           }
 
           // Get provider

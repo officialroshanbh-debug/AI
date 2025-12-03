@@ -9,22 +9,33 @@ class ModelRouter {
   private providers: Map<string, AIModelProvider> = new Map();
 
   constructor() {
-    // Initialize providers
-    const openai = new OpenAIProvider();
-    const gemini = new GeminiProvider();
-    const claude = new ClaudeProvider();
-    const himalaya = new HimalayaProvider();
-
-    this.providers.set('openai', openai);
-    this.providers.set('google', gemini);
-    this.providers.set('anthropic', claude);
-    this.providers.set('himalaya', himalaya);
+    // Providers are now lazy-loaded
   }
 
   getProvider(modelId: ModelId): AIModelProvider {
     const config = MODEL_CONFIGS[modelId];
     if (!config) {
       throw new Error(`Unknown model: ${modelId}`);
+    }
+
+    // Lazy load provider if not already initialized
+    if (!this.providers.has(config.provider)) {
+      switch (config.provider) {
+        case 'openai':
+          this.providers.set('openai', new OpenAIProvider());
+          break;
+        case 'google':
+          this.providers.set('google', new GeminiProvider());
+          break;
+        case 'anthropic':
+          this.providers.set('anthropic', new ClaudeProvider());
+          break;
+        case 'himalaya':
+          this.providers.set('himalaya', new HimalayaProvider());
+          break;
+        default:
+          throw new Error(`Unknown provider: ${config.provider}`);
+      }
     }
 
     const provider = this.providers.get(config.provider);

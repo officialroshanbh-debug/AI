@@ -55,8 +55,8 @@ export async function performWebSearch(query: string, limit: number = 5): Promis
                 const googleData = await fallbackSearch.json();
                 console.log(`[Search] Google returned ${googleData.items?.length || 0} results`);
 
-                // Now scrape each result with Jina Reader
-                for (const item of googleData.items || []) {
+                // Now scrape each result with Jina Reader in parallel
+                const scrapePromises = (googleData.items || []).map(async (item: any) => {
                     try {
                         const readResponse = await fetch(`https://r.jina.ai/${encodeURIComponent(item.link)}`, {
                             headers: {
@@ -67,32 +67,35 @@ export async function performWebSearch(query: string, limit: number = 5): Promis
 
                         if (readResponse.ok) {
                             const pageData = await readResponse.json();
-                            results.push({
+                            return {
                                 url: item.link,
                                 title: pageData.title || item.title,
                                 content: pageData.content || '',
                                 snippet: pageData.description || item.snippet || '',
-                            });
+                            };
                         } else {
-                            // If read fails, push basic Google result
-                            results.push({
+                            // If read fails, return basic Google result
+                            return {
                                 url: item.link,
                                 title: item.title,
                                 content: '',
                                 snippet: item.snippet || '',
-                            });
+                            };
                         }
                     } catch (error) {
                         console.error(`Failed to read ${item.link}:`, error);
-                        // Add basic result even if reading fails
-                        results.push({
+                        // Return basic result even if reading fails
+                        return {
                             url: item.link,
                             title: item.title,
                             content: '',
                             snippet: item.snippet || '',
-                        });
+                        };
                     }
-                }
+                });
+
+                const scrapedResults = await Promise.all(scrapePromises);
+                results.push(...scrapedResults);
             } else {
                 console.error('[Search] Google search failed:', await fallbackSearch.text());
             }
@@ -109,7 +112,7 @@ export async function performWebSearch(query: string, limit: number = 5): Promis
 export async function readUrls(urls: string[]): Promise<SearchResult[]> {
     const results: SearchResult[] = [];
 
-    for (const url of urls.slice(0, 5)) {
+    const promises = urls.slice(0, 5).map(async (url) => {
         try {
             const response = await fetch(`https://r.jina.ai/${encodeURIComponent(url)}`, {
                 headers: {
@@ -120,17 +123,22 @@ export async function readUrls(urls: string[]): Promise<SearchResult[]> {
 
             if (response.ok) {
                 const data = await response.json();
-                results.push({
+                return {
                     url,
                     title: data.title || url,
                     content: data.content || '',
                     snippet: data.description || data.content?.substring(0, 200) || '',
-                });
+                };
             }
         } catch (error) {
             console.error(`Failed to read ${url}:`, error);
         }
-    }
+        return null;
+    });
+
+    const scrapedResults = await Promise.all(promises);
+    // Filter out nulls
+    results.push(...scrapedResults.filter((r): r is SearchResult => r !== null));
 
     return results;
 }
