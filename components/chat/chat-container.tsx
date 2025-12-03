@@ -22,7 +22,7 @@ interface ChatContainerProps {
 
 export function ChatContainer({
   initialMessages = [],
-  initialModel = MODEL_IDS.GPT_4_1,
+  initialModel = MODEL_IDS.GPT_4O,
   chatId: initialChatId,
 }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
