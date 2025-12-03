@@ -1,4 +1,4 @@
-import { performWebSearch, SearchResult } from '@/lib/research/search';
+import { performWebSearch } from '@/lib/research/search';
 import { Citation } from '@/types/ai-models';
 
 export class WebResearchAgent {
@@ -31,10 +31,6 @@ export class WebResearchAgent {
         const hasKeyword = this.RESEARCH_KEYWORDS.some(keyword =>
             lowerMessage.includes(keyword)
         );
-
-        // Check for question patterns that often require external knowledge
-        const isQuestion = lowerMessage.includes('?') ||
-            /^(what|who|when|where|why|how)/.test(lowerMessage);
 
         // Heuristic: If it has a keyword AND is a question or command, it's likely research
         // Or if it explicitly asks to "search" or "find"
