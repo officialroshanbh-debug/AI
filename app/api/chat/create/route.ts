@@ -7,9 +7,13 @@ import { MODEL_IDS } from '@/types/ai-models';
 const createChatSchema = z.object({
     title: z.string().optional(),
     modelId: z.enum([
+        MODEL_IDS.GPT_5,
         MODEL_IDS.GPT_5_1,
-        MODEL_IDS.GPT_4_1,
-        MODEL_IDS.O3_MINI,
+        MODEL_IDS.GPT_4_TURBO,
+        MODEL_IDS.GPT_4O,
+        MODEL_IDS.GPT_4O_MINI,
+        MODEL_IDS.GPT_REALTIME,
+        MODEL_IDS.GPT_4,
         MODEL_IDS.GEMINI_2_0,
         MODEL_IDS.CLAUDE_3_7,
         MODEL_IDS.HIMALAYA,

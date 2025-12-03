@@ -33,7 +33,7 @@ export function EnhancedSettingsContent() {
     notifications: boolean;
     dataSharing: boolean;
   }>({
-    defaultModel: MODEL_IDS.GPT_4_1,
+    defaultModel: MODEL_IDS.GPT_4O,
     responseStyle: 'balanced',
     researchDepth: 'medium',
     theme: 'system',

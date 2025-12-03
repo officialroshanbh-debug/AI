@@ -30,22 +30,21 @@ interface WebSource {
 
 export default function ResearchPage() {
   const [query, setQuery] = useState('');
-  const [selectedModels, setSelectedModels] = useState<ModelId[]>([MODEL_IDS.GPT_4_1]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [selectedModels, setSelectedModels] = useState<ModelId[]>([MODEL_IDS.GPT_4O]);
   const [results, setResults] = useState<ResearchResult[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [webSources, setWebSources] = useState<WebSource[]>([]);
-
-  // Deep Research state
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [researchMode, setResearchMode] = useState<'quick' | 'deep'>('quick');
-  const [, setDeepResearchResult] = useState<DeepResearchResult | null>(null);
-  const [, setResearchProgress] = useState({ status: '', progress: 0 });
+  const [deepResearchResult, setDeepResearchResult] = useState<DeepResearchResult | null>(null);
+  const [researchProgress, setResearchProgress] = useState({ status: '', progress: 0 });
   const [isDeepResearching, setIsDeepResearching] = useState(false);
 
+  // Available models for research
   const availableModels = [
-    { id: MODEL_IDS.GPT_4_1, name: 'GPT-4.1' },
+    { id: MODEL_IDS.GPT_4O, name: 'GPT-4o' },
     { id: MODEL_IDS.GPT_5_1, name: 'GPT-5.1' },
-    { id: MODEL_IDS.O3_MINI, name: 'O3-Mini' },
+    { id: MODEL_IDS.GPT_4_TURBO, name: 'GPT-4 Turbo' },
   ];
 
   const toggleModel = (modelId: ModelId) => {

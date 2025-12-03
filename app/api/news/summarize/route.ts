@@ -20,8 +20,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Use AI to generate a summary
-    const provider = modelRouter.getProvider(MODEL_IDS.GPT_4_1);
-    
+    const provider = modelRouter.getProvider(MODEL_IDS.GPT_4O);
+
     const prompt = `Please provide a concise summary (2-3 sentences) of the following news article. Focus on the key facts and main points.
 
 Title: ${title}
@@ -41,12 +41,12 @@ Summary:`;
           content: prompt,
         },
       ],
-      model: MODEL_IDS.GPT_4_1,
+      model: MODEL_IDS.GPT_4O,
       temperature: 0.3,
       maxTokens: 200,
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       summary: response.content,
       title,
       url,
