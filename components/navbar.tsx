@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
-import { Moon, Sun, Settings, LogOut } from 'lucide-react';
+import { Moon, Sun, Settings, LogOut, TrendingUp } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import {
   DropdownMenu,
@@ -39,6 +39,9 @@ export function Navbar() {
               </Link>
               <Link href="/research">
                 <Button variant="ghost">Research</Button>
+              </Link>
+              <Link href="/finance">
+                <Button variant="ghost">Finance</Button>
               </Link>
               <Link href="/history">
                 <Button variant="ghost">History</Button>
