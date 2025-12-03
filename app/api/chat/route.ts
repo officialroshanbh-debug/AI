@@ -215,15 +215,6 @@ export async function POST(req: NextRequest) {
         const imageAttachments = attachments.filter(a => a.type === 'image');
 
         if (imageAttachments.length > 0) {
-          // Convert to OpenAI vision format
-          const imageContent = imageAttachments.map(img => ({
-            type: 'image_url' as const,
-            image_url: {
-              url: img.url,
-              detail: 'auto' as const,
-            },
-          }));
-
           // Add image analysis context if available
           const analysisContext = imageAttachments
             .filter(img => img.analysis?.description)

@@ -28,7 +28,7 @@ export function ChatContainer({
   const [currentModel, setCurrentModel] = useState<ModelId>(initialModel);
   const [isStreaming, setIsStreaming] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
-  const [attachments, setAttachments] = useState<any[]>([]);
+  const [attachments, setAttachments] = useState<Array<{ id: string; type: string; url: string; filename: string; mimeType: string; analysis?: unknown }>>([]);
   const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -79,11 +79,11 @@ export function ChatContainer({
       }
 
       const data = await response.json();
-      const successfulUploads = data.results.filter((r: any) => r.success);
+      const successfulUploads = data.results.filter((r: { success?: boolean }) => r.success);
 
-      setAttachments(prev => [
+      setAttachments((prev) => [
         ...prev,
-        ...successfulUploads.map((r: any) => r.mediaFile),
+        ...successfulUploads.map((r: { mediaFile: unknown }) => r.mediaFile as typeof attachments[0]),
       ]);
     } catch (error) {
       console.error('File upload error:', error);
