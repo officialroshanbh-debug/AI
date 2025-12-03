@@ -216,7 +216,7 @@ export default function ResearchPage() {
         throw new Error('Deep research failed');
       }
 
-      const result = await response.json();
+      await response.json();
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to perform deep research');
