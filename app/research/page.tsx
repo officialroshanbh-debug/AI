@@ -29,6 +29,11 @@ interface WebSource {
   snippet: string;
 }
 
+import { Progress } from '@/components/ui/progress';
+import { ResearchSection } from '@/types/research';
+
+// ... existing imports
+
 export default function ResearchPage() {
   const [query, setQuery] = useState('');
   const [selectedModels, setSelectedModels] = useState<ModelId[]>([MODEL_IDS.GPT_4O]);
@@ -38,6 +43,9 @@ export default function ResearchPage() {
   const [error, setError] = useState<string | null>(null);
   const [researchMode, setResearchMode] = useState<'quick' | 'deep'>('quick');
   const [isDeepResearching, setIsDeepResearching] = useState(false);
+  const [researchProgress, setResearchProgress] = useState(0);
+  const [researchStatus, setResearchStatus] = useState('');
+  const [streamedSections, setStreamedSections] = useState<ResearchSection[]>([]);
 
   // Available models for research
   const availableModels = [
@@ -205,6 +213,9 @@ export default function ResearchPage() {
     setIsDeepResearching(true);
     setError(null);
     setResults([]); // Clear previous results
+    setResearchProgress(0);
+    setResearchStatus('Initializing...');
+    setStreamedSections([]);
 
     try {
       const response = await fetch('/api/research/deep', {
@@ -243,7 +254,10 @@ export default function ResearchPage() {
               const parsed = JSON.parse(data);
 
               if (parsed.type === 'progress') {
-                console.log(`Progress: ${parsed.progress}% - ${parsed.status}`);
+                setResearchProgress(parsed.progress);
+                setResearchStatus(parsed.status);
+              } else if (parsed.type === 'section') {
+                setStreamedSections(prev => [...prev, parsed.section]);
               } else if (parsed.type === 'result') {
                 const result = parsed.result;
 
@@ -367,7 +381,7 @@ export default function ResearchPage() {
       yPos += 8;
 
       doc.setFontSize(9);
-      const responseLines = doc.splitTextToSize(r.response.substring(0, 1000), maxWidth);
+      const responseLines = doc.splitTextToSize(r.response, maxWidth);
       responseLines.forEach((line: string) => {
         if (yPos > 280) {
           doc.addPage();
@@ -497,6 +511,39 @@ export default function ResearchPage() {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Progress Bar */}
+            {isDeepResearching && (
+              <Card className="mb-6">
+                <CardContent className="pt-6">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">{researchStatus}</span>
+                      <span className="text-muted-foreground">{Math.round(researchProgress)}%</span>
+                    </div>
+                    <Progress value={researchProgress} className="h-2" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Streamed Sections (while researching) */}
+            {isDeepResearching && streamedSections.length > 0 && results.length === 0 && (
+              <div className="space-y-6 mb-8">
+                {streamedSections.map((section) => (
+                  <Card key={section.id}>
+                    <CardHeader>
+                      <CardTitle>{section.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="prose dark:prose-invert max-w-none">
+                        <p className="whitespace-pre-wrap">{section.content}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
 
             {/* Results */}
             {results.length > 0 && (

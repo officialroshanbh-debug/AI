@@ -27,6 +27,10 @@ export async function POST(req: NextRequest) {
                     // Send progress update
                     const data = JSON.stringify({ type: 'progress', status, progress });
                     await writer.write(encoder.encode(`data: ${data}\n\n`));
+                }, async (section) => {
+                    // Send section update
+                    const data = JSON.stringify({ type: 'section', section });
+                    await writer.write(encoder.encode(`data: ${data}\n\n`));
                 });
 
                 // Send final result

@@ -148,7 +148,8 @@ Structure with clear paragraphs and logical flow.`;
  */
 export async function performDeepResearch(
     query: string,
-    onProgress?: (status: string, progress: number) => void
+    onProgress?: (status: string, progress: number) => void,
+    onSectionComplete?: (section: ResearchSection) => void
 ): Promise<DeepResearchResult> {
     try {
         // Step 1: Generate outline
@@ -177,6 +178,7 @@ export async function performDeepResearch(
 
             const researchedSection = await researchSection(section, query, webSources);
             sections.push(researchedSection);
+            onSectionComplete?.(researchedSection);
         }
 
         onProgress?.('Finalizing report...', 95);
