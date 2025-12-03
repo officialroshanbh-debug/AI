@@ -65,14 +65,9 @@ export function ChatSidebar({ chats, currentChatId }: ChatSidebarProps) {
     router.push(`/chat/${chatId}`);
   };
 
-  const handleNewChat = async () => {
-    setIsCreating(true);
-    try {
-      const chat = await createChat();
-      router.push(`/chat/${chat.id}`);
-    } finally {
-      setIsCreating(false);
-    }
+  const handleNewChat = () => {
+    router.push('/chat');
+    router.refresh();
   };
 
   const handleDeleteChat = async (chatId: string) => {
