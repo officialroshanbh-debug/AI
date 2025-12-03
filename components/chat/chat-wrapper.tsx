@@ -4,8 +4,8 @@ import { motion } from 'framer-motion';
 import { ReactNode } from 'react';
 
 interface ChatWrapperProps {
-    children: ReactNode;
-    chatId: string;
+    children: React.ReactNode;
+    chatId?: string;
 }
 
 export function ChatWrapper({ children, chatId }: ChatWrapperProps) {
