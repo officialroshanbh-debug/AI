@@ -5,7 +5,6 @@ import { MarketIndices } from '@/components/finance/market-indices';
 import { MarketSummary } from '@/components/finance/market-summary';
 import { Watchlist } from '@/components/finance/watchlist';
 import { StockSearch } from '@/components/finance/stock-search';
-import { Navbar } from '@/components/navbar';
 
 export default function FinancePage() {
     const [marketData, setMarketData] = useState<any>(null);
@@ -37,8 +36,6 @@ export default function FinancePage() {
 
     return (
         <div className="min-h-screen bg-background">
-            <Navbar />
-
             <main className="container mx-auto px-4 py-8 max-w-7xl">
                 {/* Header Section */}
                 <div className="mb-8">
