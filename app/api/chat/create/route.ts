@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
 
         const { title, modelId } = validationResult.data;
 
-        const chat = await createChat(title, modelId as 'gpt-4o' | 'gpt-4o-mini' | 'gpt-3.5-turbo' | 'o3-mini' | 'himalaya');
+        const chat = await createChat(title, modelId);
+
 
         return NextResponse.json({ chatId: chat.id, title: chat.title });
     } catch (error) {
