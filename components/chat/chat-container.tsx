@@ -6,6 +6,7 @@ import { ChatInput } from './chat-input';
 import { ModelSelector } from './model-selector';
 import { ChatSkeleton } from './chat-skeleton';
 import { TemplateSelector } from './template-selector';
+import { ExportButton } from './export-button';
 import { Button } from '@/components/ui/button';
 import { Trash2, FileText } from 'lucide-react';
 import type { Message, ModelId } from '@/types/ai-models';
@@ -285,6 +286,9 @@ export function ChatContainer({
                 disabled={isStreaming}
                 aria-label="Select AI model"
               />
+              {messages.length > 0 && chatId && (
+                <ExportButton chatId={chatId} />
+              )}
               {messages.length > 0 && (
                 <Button
                   variant="ghost"
