@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MODEL_CONFIGS, MODEL_IDS, type ModelId } from '@/types/ai-models';
 import { ResearchComparisonChart } from '@/components/research/comparison-chart';
 import { ResearchResults } from '@/components/research/research-results';
+import { combineReport } from '@/lib/research/utils';
 
 
 interface ResearchResult {
@@ -203,7 +204,7 @@ export default function ResearchPage() {
 
     setIsDeepResearching(true);
     setError(null);
-
+    setResults([]); // Clear previous results
 
     try {
       const response = await fetch('/api/research/deep', {
@@ -216,7 +217,55 @@ export default function ResearchPage() {
         throw new Error('Deep research failed');
       }
 
-      await response.json();
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) throw new Error('No response stream');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') break;
+
+            try {
+              const parsed = JSON.parse(data);
+
+              if (parsed.type === 'progress') {
+                // Update progress UI (you might need to add a state for this)
+                console.log(`Progress: ${parsed.progress}% - ${parsed.status}`);
+                // Optional: Add a toast or status indicator here
+              } else if (parsed.type === 'result') {
+                // Handle final result
+                const result = parsed.result;
+
+                // Convert DeepResearchResult to ResearchResult format for display
+                const deepResult: ResearchResult = {
+                  modelId: MODEL_IDS.GPT_4O, // Assuming primary model
+                  modelName: 'Deep Research Report',
+                  response: combineReport(result.outline, result.sections),
+                  responseTime: 0, // We could track this
+                  wordCount: result.totalWordCount,
+                  readabilityScore: calculateReadability(combineReport(result.outline, result.sections)),
+                  tokens: 0
+                };
+
+                setResults([deepResult]);
+              } else if (parsed.type === 'error') {
+                throw new Error(parsed.error);
+              }
+            } catch (e) {
+              console.error('Error parsing stream:', e);
+            }
+          }
+        }
+      }
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to perform deep research');
