@@ -69,15 +69,20 @@ export class WebResearchAgent {
 
             // Generate context for the LLM
             const context = `
-Here are the latest search results for "${query}". 
-Use these results to answer the user's question. 
+SYSTEM INSTRUCTION: REAL-TIME WEB RESEARCH RESULTS
+You have been provided with real-time web search results for the query: "${query}".
+You MUST use this information to answer the user's question.
+Do NOT say you don't have real-time access or that you are an AI with a knowledge cutoff.
+The following information is current and accurate as of right now.
+
 Cite your sources using [1], [2], etc. corresponding to the order below.
 
+SEARCH RESULTS:
 ${results.map((r, i) => `
 [${i + 1}] Title: ${r.title}
 Source: ${r.url}
 Snippet: ${r.snippet}
-Content: ${r.content.slice(0, 500)}...
+Content: ${r.content.slice(0, 800)}...
 `).join('\n\n')}
 `;
 
