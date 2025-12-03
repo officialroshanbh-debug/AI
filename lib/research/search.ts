@@ -13,11 +13,17 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
 
     try {
         // 1. Try Jina Search first
+        const headers: Record<string, string> = {
+            'Accept': 'application/json',
+            'X-Return-Format': 'json',
+        };
+
+        if (process.env.JINA_API_KEY) {
+            headers['Authorization'] = `Bearer ${process.env.JINA_API_KEY}`;
+        }
+
         const searchResponse = await fetch(`https://s.jina.ai/${encodeURIComponent(query)}`, {
-            headers: {
-                'Accept': 'application/json',
-                'X-Return-Format': 'json',
-            },
+            headers,
         });
 
         if (searchResponse.ok) {
