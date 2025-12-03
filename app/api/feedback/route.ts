@@ -5,9 +5,10 @@ import { z } from 'zod';
 
 const feedbackSchema = z.object({
     messageId: z.string(),
-    rating: z.number().min(1).max(5), // 1 = thumbs down, 5 = thumbs up
-    category: z.enum(['incorrect', 'harmful', 'not_helpful', 'other', 'positive']).optional(),
+    rating: z.number().min(1).max(5).optional(),
+    isPositive: z.boolean().optional(),
     comment: z.string().max(1000).optional(),
+    reportedIssue: z.string().max(1000).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { messageId, rating } = validationResult.data;
+        const { messageId, rating, isPositive, comment, reportedIssue } = validationResult.data;
 
         // Verify message exists and belongs to user's chat
         const message = await prisma.message.findFirst({
@@ -61,6 +62,9 @@ export async function POST(req: NextRequest) {
                 where: { id: existingFeedback.id },
                 data: {
                     rating,
+                    isPositive,
+                    comment,
+                    reportedIssue,
                 },
             })
             : await prisma.feedback.create({
@@ -68,6 +72,9 @@ export async function POST(req: NextRequest) {
                     messageId,
                     userId,
                     rating,
+                    isPositive,
+                    comment,
+                    reportedIssue,
                 },
             });
 
