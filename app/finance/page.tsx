@@ -6,8 +6,14 @@ import { MarketSummary } from '@/components/finance/market-summary';
 import { Watchlist } from '@/components/finance/watchlist';
 import { StockSearch } from '@/components/finance/stock-search';
 
+interface MarketData {
+    indices: any[];
+    gainers: any[];
+    losers: any[];
+}
+
 export default function FinancePage() {
-    const [marketData, setMarketData] = useState<any>(null);
+    const [marketData, setMarketData] = useState<MarketData | null>(null);
     const [news, setNews] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 

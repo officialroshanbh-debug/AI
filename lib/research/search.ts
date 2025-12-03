@@ -55,8 +55,14 @@ export async function performWebSearch(query: string, limit: number = 5): Promis
                 const googleData = await fallbackSearch.json();
                 console.log(`[Search] Google returned ${googleData.items?.length || 0} results`);
 
+                interface GoogleSearchItem {
+                    link: string;
+                    title: string;
+                    snippet?: string;
+                }
+
                 // Now scrape each result with Jina Reader in parallel
-                const scrapePromises = (googleData.items || []).map(async (item: any) => {
+                const scrapePromises = (googleData.items || []).map(async (item: GoogleSearchItem) => {
                     try {
                         const readResponse = await fetch(`https://r.jina.ai/${encodeURIComponent(item.link)}`, {
                             headers: {

@@ -185,8 +185,8 @@ export async function POST(req: NextRequest) {
           dbWritePromises.push(userMessagePromise);
 
           // WEB RESEARCH INTEGRATION (Inside stream for progress updates)
-          let researchData = null;
-          let weatherData = null;
+          let researchData: any = null;
+          let weatherData: any = null;
 
           // Parallelize research and weather fetch
           const tasks: Promise<any>[] = [];
