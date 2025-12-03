@@ -222,12 +222,17 @@ export default function ResearchPage() {
 
       if (!reader) throw new Error('No response stream');
 
+      let buffer = '';
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n\n');
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+
+        // Keep the last part in the buffer as it might be incomplete
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
@@ -238,19 +243,15 @@ export default function ResearchPage() {
               const parsed = JSON.parse(data);
 
               if (parsed.type === 'progress') {
-                // Update progress UI (you might need to add a state for this)
                 console.log(`Progress: ${parsed.progress}% - ${parsed.status}`);
-                // Optional: Add a toast or status indicator here
               } else if (parsed.type === 'result') {
-                // Handle final result
                 const result = parsed.result;
 
-                // Convert DeepResearchResult to ResearchResult format for display
                 const deepResult: ResearchResult = {
-                  modelId: MODEL_IDS.GPT_4O, // Assuming primary model
+                  modelId: MODEL_IDS.GPT_4O,
                   modelName: 'Deep Research Report',
                   response: combineReport(result.outline, result.sections),
-                  responseTime: 0, // We could track this
+                  responseTime: 0,
                   wordCount: result.totalWordCount,
                   readabilityScore: calculateReadability(combineReport(result.outline, result.sections)),
                   tokens: 0
