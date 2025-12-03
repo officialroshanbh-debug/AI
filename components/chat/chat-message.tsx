@@ -233,48 +233,45 @@ export function ChatMessage({ message, isStreaming, onRegenerate }: ChatMessageP
             )}
           </div>
 
-          {/* Citations */}
+          {/* Citations - Compact View */}
           {!isUser && message.citations && message.citations.length > 0 && (
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                <BookOpen className="h-3 w-3" />
-                Sources ({message.citations.length})
+            <div className="mt-4 pt-4 border-t border-border/50">
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-3">
+                <BookOpen className="h-3.5 w-3.5" />
+                Sources
               </div>
-              <div className="space-y-2">
-                {message.citations.map((citation, idx) => (
-                  <motion.a
-                    key={citation.id || idx}
-                    href={citation.source}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="group flex items-start gap-2 p-2 rounded-lg border bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium text-primary">
-                          [{idx + 1}]
-                        </span>
-                        <span className="text-xs text-muted-foreground truncate">
-                          {citation.source}
-                        </span>
-                        {citation.relevance && (
-                          <Badge variant="outline" className="text-xs">
-                            {(citation.relevance * 100).toFixed(0)}% match
-                          </Badge>
-                        )}
+              <div className="flex flex-wrap gap-2">
+                {message.citations.map((citation, idx) => {
+                  const domain = new URL(citation.source).hostname.replace('www.', '');
+                  return (
+                    <motion.a
+                      key={citation.id || idx}
+                      href={citation.source}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="group flex items-center gap-2 px-3 py-1.5 rounded-full border bg-background hover:bg-muted/50 transition-all text-xs max-w-[200px]"
+                      title={citation.title || citation.source}
+                    >
+                      <div className="relative h-3.5 w-3.5 shrink-0 overflow-hidden rounded-sm">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`}
+                          alt={domain}
+                          className="h-full w-full object-cover"
+                        />
                       </div>
-                      {citation.quote && (
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          "{citation.quote}"
-                        </p>
-                      )}
-                    </div>
-                    <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5" />
-                  </motion.a>
-                ))}
+                      <span className="truncate font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                        {domain}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/50 font-mono ml-0.5">
+                        {idx + 1}
+                      </span>
+                    </motion.a>
+                  );
+                })}
               </div>
             </div>
           )}
