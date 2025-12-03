@@ -52,7 +52,7 @@ export default function HistoryPage() {
   }, []);
 
   const generateMockHistory = (): HistoryItem[] => {
-    const models: ModelId[] = ['gpt-4.1', 'gpt-5.1', 'o3-mini'];
+    const models: ModelId[] = ['gpt-4o', 'gpt-5.1-chat-latest', 'gpt-4-turbo'];
     const queries = [
       'What is quantum computing?',
       'Explain the theory of relativity',
