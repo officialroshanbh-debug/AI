@@ -42,7 +42,7 @@ export function UsageChart({
     }));
 
     const ChartComponent = type === 'line' ? LineChart : BarChart;
-    const DataComponent = type === 'line' ? Line : Bar;
+    const DataComponent: typeof Line | typeof Bar = type === 'line' ? Line : Bar;
 
     return (
         <Card>
