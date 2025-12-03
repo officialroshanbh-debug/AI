@@ -38,7 +38,7 @@ export interface DeepResearchResult {
 /**
  * Helper to try multiple models if one fails (e.g. due to access rights)
  */
-async function createCompletionWithFallback(params: Omit<OpenAI.Chat.ChatCompletionCreateParams, 'model'>) {
+async function createCompletionWithFallback(params: Omit<OpenAI.Chat.ChatCompletionCreateParams, 'model'>): Promise<OpenAI.Chat.ChatCompletion> {
     // Try models in this order: GPT-4o -> GPT-5.1 -> GPT-4 Turbo
     const modelsToTry = [MODEL_IDS.GPT_4O, MODEL_IDS.GPT_5_1, MODEL_IDS.GPT_4_TURBO];
     let lastError;
