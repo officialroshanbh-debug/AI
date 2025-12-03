@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { messageId, rating, category, comment } = validationResult.data;
+        const { messageId, rating } = validationResult.data;
 
         // Verify message exists and belongs to user's chat
         const message = await prisma.message.findFirst({
@@ -61,8 +61,6 @@ export async function POST(req: NextRequest) {
                 where: { id: existingFeedback.id },
                 data: {
                     rating,
-                    category,
-                    comment,
                 },
             })
             : await prisma.feedback.create({
@@ -70,8 +68,6 @@ export async function POST(req: NextRequest) {
                     messageId,
                     userId,
                     rating,
-                    category,
-                    comment,
                 },
             });
 
