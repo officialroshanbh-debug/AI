@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { MODEL_IDS } from '@/types/ai-models';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -35,6 +36,32 @@ export interface DeepResearchResult {
 }
 
 /**
+ * Helper to try multiple models if one fails (e.g. due to access rights)
+ */
+async function createCompletionWithFallback(params: Omit<OpenAI.Chat.ChatCompletionCreateParams, 'model'>) {
+    // Try models in this order: GPT-4o -> GPT-5.1 -> GPT-4 Turbo
+    const modelsToTry = [MODEL_IDS.GPT_4O, MODEL_IDS.GPT_5_1, MODEL_IDS.GPT_4_TURBO];
+    let lastError;
+
+    for (const model of modelsToTry) {
+        try {
+            console.log(`[Deep Research] Attempting with model: ${model}`);
+            return await openai.chat.completions.create({
+                ...params,
+                model,
+            });
+        } catch (error) {
+            console.warn(`[Deep Research] Model ${model} failed:`, error);
+            lastError = error;
+            // Continue to next model
+        }
+    }
+
+    // If all failed, throw the last error
+    throw lastError;
+}
+
+/**
  * Generate a comprehensive outline for deep research
  */
 export async function generateOutline(query: string): Promise<ResearchOutline> {
@@ -60,8 +87,7 @@ Return a JSON object with this structure:
 
 Make it thorough and academic. Include 5-8 sections.`;
 
-    const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
+    const completion = await createCompletionWithFallback({
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
@@ -121,8 +147,7 @@ Write 800-1200 words for this section. Be thorough and informative.
 Include specific examples, data points, and explanations.
 Structure with clear paragraphs and logical flow.`;
 
-    const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
+    const completion = await createCompletionWithFallback({
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
