@@ -11,7 +11,6 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { Card } from '@/components/ui/card';
 import { ResearchResult } from '@/types/research';
 
 interface ResearchComparisonChartProps {
@@ -31,7 +30,7 @@ export function ResearchComparisonChart({ results }: ResearchComparisonChartProp
     readabilityScore: r.readabilityScore,
   }));
 
-  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) => {
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: string | number }>; label?: string }) => {
     if (active && payload && payload.length) {
       return (
         <div className="rounded-lg border bg-background p-2 shadow-sm">
