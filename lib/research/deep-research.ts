@@ -49,7 +49,7 @@ async function createCompletionWithFallback(params: Omit<OpenAI.Chat.ChatComplet
             return await openai.chat.completions.create({
                 ...params,
                 model,
-            });
+            }) as Promise<OpenAI.Chat.ChatCompletion>;
         } catch (error) {
             console.warn(`[Deep Research] Model ${model} failed:`, error);
             lastError = error;
