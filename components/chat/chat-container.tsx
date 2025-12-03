@@ -17,13 +17,13 @@ import { useLocation } from '@/hooks/use-location';
 interface ChatContainerProps {
   initialMessages?: Message[];
   initialModel?: ModelId;
-  chatId?: string;
+  chatId?: string | undefined;
 }
 
 export function ChatContainer({
   initialMessages = [],
   initialModel = MODEL_IDS.GPT_4_1,
-  chatId,
+  chatId: initialChatId,
 }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [currentModel, setCurrentModel] = useState<ModelId>(initialModel);
@@ -31,6 +31,7 @@ export function ChatContainer({
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [attachments, setAttachments] = useState<Array<{ id: string; type: string; url: string; filename: string; mimeType: string; analysis?: unknown }>>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [chatId, setChatId] = useState<string | undefined>(initialChatId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { location } = useLocation();
@@ -170,6 +171,34 @@ export function ChatContainer({
     setMessages(newMessages);
     setIsStreaming(true);
 
+    // If this is the first message and no chatId exists, create the chat
+    let currentChatId = chatId;
+    if (!currentChatId && newMessages.length === 1) {
+      try {
+        // Generate title from first message
+        const title = content.trim().split('\n')[0].slice(0, 60);
+        const createResponse = await fetch('/api/chat/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            title: title || 'New Chat',
+            modelId: currentModel,
+          }),
+        });
+
+        if (createResponse.ok) {
+          const { chatId: newChatId } = await createResponse.json();
+          currentChatId = newChatId;
+          setChatId(newChatId);
+          // Update URL without page reload
+          window.history.pushState({}, '', `/chat/${newChatId}`);
+        }
+      } catch (error) {
+        console.error('Failed to create chat:', error);
+      }
+    }
+
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -180,7 +209,7 @@ export function ChatContainer({
         body: JSON.stringify({
           messages: newMessages,
           modelId: currentModel,
-          chatId,
+          chatId: currentChatId,
           ...(attachments.length > 0 && { attachments }),
           ...(location && {
             userLocation: {
