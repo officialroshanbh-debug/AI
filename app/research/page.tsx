@@ -1,13 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Share2, Download, BarChart3 } from 'lucide-react';
+import { Search, Share2, Download, BarChart3, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { MODEL_CONFIGS, MODEL_IDS, type ModelId } from '@/types/ai-models';
 import { ResearchComparisonChart } from '@/components/research/comparison-chart';
 import { ResearchResults } from '@/components/research/research-results';
+import { Citations } from '@/components/research/citations';
+import { SourcePreviewModal } from '@/components/research/source-preview-modal';
 
 interface ResearchResult {
   modelId: ModelId;
@@ -19,12 +23,22 @@ interface ResearchResult {
   tokens?: number;
 }
 
+interface WebSource {
+  url: string;
+  title: string;
+  content: string;
+  snippet: string;
+}
+
 export default function ResearchPage() {
   const [query, setQuery] = useState('');
   const [selectedModels, setSelectedModels] = useState<ModelId[]>([MODEL_IDS.GPT_4_1]);
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<ResearchResult[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
+  const [webSources, setWebSources] = useState<WebSource[]>([]);
+  const [previewSource, setPreviewSource] = useState<WebSource | null>(null);
 
   const availableModels = [
     { id: MODEL_IDS.GPT_4_1, name: 'GPT-4.1' },
@@ -68,9 +82,31 @@ export default function ResearchPage() {
     setIsLoading(true);
     setError(null);
     setResults([]);
+    setWebSources([]);
 
     try {
       const researchResults: ResearchResult[] = [];
+      let sources: WebSource[] = [];
+
+      // Step 1: If web search is enabled, fetch sources first
+      if (webSearchEnabled) {
+        try {
+          const searchResponse = await fetch('/api/research/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query }),
+          });
+
+          if (searchResponse.ok) {
+            const searchData = await searchResponse.json();
+            sources = searchData.results || [];
+            setWebSources(sources);
+          }
+        } catch (err) {
+          console.error('Web search failed:', err);
+          // Continue without web sources
+        }
+      }
 
       // Call each selected model in parallel
       const promises = selectedModels.map(async (modelId) => {
@@ -81,7 +117,7 @@ export default function ResearchPage() {
           const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
+            body: JSON.stringify({
               messages: [{ role: 'user' as const, content: query }],
               modelId,
             }),
@@ -109,7 +145,7 @@ export default function ResearchPage() {
                 if (line.startsWith('data: ')) {
                   const data = line.slice(6);
                   if (data === '[DONE]') continue;
-                  
+
                   try {
                     const parsed = JSON.parse(data);
                     if (parsed.content) {
