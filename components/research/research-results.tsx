@@ -87,7 +87,7 @@ export function ResearchResults({ results, onCopy }: ResearchResultsProps) {
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <ReactMarkdown
                     components={{
-                      code({ node, inline, className, children, ...props }: any) {
+                      code({ inline, className, children, ...props }: { inline?: boolean; className?: string; children?: React.ReactNode;[key: string]: any }) {
                         const match = /language-(\w+)/.exec(className || '');
                         return !inline && match ? (
                           <SyntaxHighlighter
