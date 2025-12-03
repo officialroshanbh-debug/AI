@@ -1,51 +1,18 @@
 'use client';
 
 import React from 'react';
-import dynamic from 'next/dynamic';
-
-// Dynamically import Plotly to avoid SSR issues
-// Type assertion needed because dynamic() doesn't preserve custom prop types
-const Plot = dynamic(
-  () => import('react-plotly.js'),
-  { ssr: false }
-) as React.ComponentType<{
-  data: Array<{
-    x?: unknown[];
-    y?: unknown[];
-    type?: string;
-    marker?: { color?: string };
-    name?: string;
-    [key: string]: unknown;
-  }>;
-  layout?: {
-    autosize?: boolean;
-    margin?: { l?: number; r?: number; t?: number; b?: number };
-    paper_bgcolor?: string;
-    plot_bgcolor?: string;
-    font?: { color?: string; size?: number };
-    xaxis?: { gridcolor?: string; color?: string };
-    yaxis?: { gridcolor?: string; color?: string };
-    title?: string;
-    [key: string]: unknown;
-  };
-  config?: {
-    displayModeBar?: boolean;
-    responsive?: boolean;
-    [key: string]: unknown;
-  };
-  style?: React.CSSProperties;
-  [key: string]: unknown;
-}>;
-
-interface ResearchResult {
-  modelId: string;
-  modelName: string;
-  response: string;
-  responseTime: number;
-  wordCount: number;
-  readabilityScore: number;
-  tokens?: number;
-}
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ResearchResult } from '@/types/research';
 
 interface ResearchComparisonChartProps {
   results: ResearchResult[];
@@ -57,103 +24,103 @@ export function ResearchComparisonChart({ results }: ResearchComparisonChartProp
   }
 
   // Prepare data for charts
-  const modelNames = results.map((r) => r.modelName);
-  const responseTimes = results.map((r) => r.responseTime / 1000); // Convert to seconds
-  const wordCounts = results.map((r) => r.wordCount);
-  const readabilityScores = results.map((r) => r.readabilityScore);
+  const data = results.map((r) => ({
+    name: r.modelName,
+    responseTime: r.responseTime,
+    wordCount: r.wordCount,
+    readabilityScore: r.readabilityScore,
+  }));
 
-  // Response Time Chart
-  const responseTimeData = [
-    {
-      x: modelNames,
-      y: responseTimes,
-      type: 'bar',
-      marker: { color: 'rgb(37, 99, 235)' },
-      name: 'Response Time (s)',
-    },
-  ];
-
-  // Word Count Chart
-  const wordCountData = [
-    {
-      x: modelNames,
-      y: wordCounts,
-      type: 'bar',
-      marker: { color: 'rgb(6, 182, 212)' },
-      name: 'Word Count',
-    },
-  ];
-
-  // Readability Score Chart
-  const readabilityData = [
-    {
-      x: modelNames,
-      y: readabilityScores,
-      type: 'bar',
-      marker: { color: 'rgb(34, 197, 94)' },
-      name: 'Readability Score',
-    },
-  ];
-
-  const layout = {
-    autosize: true,
-    margin: { l: 40, r: 20, t: 20, b: 40 },
-    paper_bgcolor: 'transparent',
-    plot_bgcolor: 'transparent',
-    font: { color: 'hsl(var(--foreground))', size: 12 },
-    xaxis: {
-      gridcolor: 'hsl(var(--border))',
-      color: 'hsl(var(--muted-foreground))',
-    },
-    yaxis: {
-      gridcolor: 'hsl(var(--border))',
-      color: 'hsl(var(--muted-foreground))',
-    },
-  };
-
-  const config = {
-    displayModeBar: false,
-    responsive: true,
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="rounded-lg border bg-background p-2 shadow-sm">
+          <p className="font-medium text-sm">{label}</p>
+          <p className="text-xs text-muted-foreground">
+            {payload[0].name}: {payload[0].value}
+          </p>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h4 className="text-sm font-medium mb-2">Response Time</h4>
-        <div className="h-48">
-          <Plot
-            data={responseTimeData}
-            layout={{ ...layout, title: '' }}
-            config={config}
-            style={{ width: '100%', height: '100%' }}
-          />
+        <h4 className="text-sm font-medium mb-2">Response Time (ms)</h4>
+        <div className="h-48 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} layout="vertical" margin={{ left: 40 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" hide />
+              <YAxis
+                dataKey="name"
+                type="category"
+                width={100}
+                tick={{ fontSize: 12 }}
+                interval={0}
+              />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+              <Bar dataKey="responseTime" radius={[0, 4, 4, 0]}>
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill="hsl(var(--primary))" />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
       <div>
         <h4 className="text-sm font-medium mb-2">Word Count</h4>
-        <div className="h-48">
-          <Plot
-            data={wordCountData}
-            layout={{ ...layout, title: '' }}
-            config={config}
-            style={{ width: '100%', height: '100%' }}
-          />
+        <div className="h-48 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} layout="vertical" margin={{ left: 40 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" hide />
+              <YAxis
+                dataKey="name"
+                type="category"
+                width={100}
+                tick={{ fontSize: 12 }}
+                interval={0}
+              />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+              <Bar dataKey="wordCount" radius={[0, 4, 4, 0]}>
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill="hsl(var(--secondary))" />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
       <div>
         <h4 className="text-sm font-medium mb-2">Readability Score</h4>
-        <div className="h-48">
-          <Plot
-            data={readabilityData}
-            layout={{ ...layout, title: '' }}
-            config={config}
-            style={{ width: '100%', height: '100%' }}
-          />
+        <div className="h-48 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} layout="vertical" margin={{ left: 40 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" domain={[0, 100]} hide />
+              <YAxis
+                dataKey="name"
+                type="category"
+                width={100}
+                tick={{ fontSize: 12 }}
+                interval={0}
+              />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+              <Bar dataKey="readabilityScore" radius={[0, 4, 4, 0]}>
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill="hsl(var(--accent))" />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>
   );
 }
-

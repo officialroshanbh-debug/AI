@@ -18,6 +18,8 @@ export interface ResearchSection {
         title: string;
         snippet: string;
     }>;
+    citations?: string[];
+    metadata?: Record<string, unknown>;
     wordCount: number;
 }
 
@@ -26,4 +28,14 @@ export interface DeepResearchResult {
     sections: ResearchSection[];
     totalWordCount: number;
     totalSources: number;
+}
+
+export interface ResearchResult {
+    modelId: string;
+    modelName: string;
+    response: string;
+    responseTime: number;
+    wordCount: number;
+    readabilityScore: number;
+    tokens?: number;
 }
