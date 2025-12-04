@@ -25,17 +25,34 @@ export async function POST(req: NextRequest) {
     let articleContent = content;
     if (!articleContent && url) {
       try {
-        const { scrapeArticleContent } = await import('@/lib/news/content-scraper');
-        const scraped = await scrapeArticleContent(url);
-        if (scraped && scraped.content) {
-          articleContent = scraped.content;
+        // Try Jina Reader first (better quality)
+        const { readUrls } = await import('@/lib/research/search');
+        const jinaResults = await readUrls([url]);
+        if (jinaResults && jinaResults.length > 0 && jinaResults[0].content) {
+          articleContent = jinaResults[0].content;
+        } else {
+          // Fallback to basic scraper
+          const { scrapeArticleContent } = await import('@/lib/news/content-scraper');
+          const scraped = await scrapeArticleContent(url);
+          if (scraped && scraped.content) {
+            articleContent = scraped.content;
+          }
         }
       } catch (e) {
         console.warn('Failed to scrape content for summary:', e);
       }
     }
 
-    const prompt = `Please provide a comprehensive and insightful summary of the following news article. 
+    // If we still have no content, rely on description or return error
+    if (!articleContent && !description) {
+      return NextResponse.json({
+        summary: "I couldn't access the article content to generate a summary. Please try reading the full article directly.",
+        title,
+        url
+      }, { status: 200 });
+    }
+
+    const prompt = `Please provide a comprehensive and insightful summary of the following news article.
 Focus on the key facts, main arguments, and broader context. Maintain a neutral and objective tone.
 
 Title: ${title}
@@ -43,7 +60,7 @@ URL: ${url}
 ${description ? `Description: ${description}` : ''}
 
 ${articleContent ? `Full Article Content:
-${articleContent.slice(0, 15000)}` : ''}
+${articleContent.slice(0, 15000)}` : 'Note: Full content could not be retrieved. Please summarize based on the title and description provided above.'}
 
 Summary:`;
 
