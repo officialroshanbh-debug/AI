@@ -20,13 +20,28 @@ export default function NewsDetailPage() {
     // Fetch news item with full content from API
     const fetchNews = async () => {
       try {
-        const response = await fetch(`/api/news/${params.id}`);
+        // Reconstruct URL from catch-all params
+        const idParam = params.id;
+        const newsId = Array.isArray(idParam)
+          ? idParam.map(segment => decodeURIComponent(segment)).join('/')
+          : idParam;
+
+        // Encode the ID for the API call
+        // If it's a URL, we need to encode each segment or the whole thing safely
+        // Since we changed the API to accept [...id], we can pass the segments as is
+        const apiPath = Array.isArray(idParam) ? idParam.join('/') : idParam;
+
+        const response = await fetch(`/api/news/${apiPath}`);
         const data = await response.json();
         if (data.newsItem) {
           setNewsItem(data.newsItem);
           // Use full content as summary if available, or existing summary
           if (data.newsItem.fullContent) {
-            setSummary(data.newsItem.fullContent.slice(0, 500) + '...');
+            // Don't auto-set summary from content, let user generate it with AI
+            // unless it's already summarized
+            if (data.newsItem.summary && data.newsItem.summary.length < 500) {
+              setSummary(data.newsItem.summary);
+            }
           } else if (data.newsItem.summary) {
             setSummary(data.newsItem.summary);
           }
@@ -55,6 +70,7 @@ export default function NewsDetailPage() {
           title: newsItem.title,
           description: newsItem.description,
           url: newsItem.link,
+          content: newsItem.fullContent, // Pass full content for better summary
         }),
       });
 
@@ -88,8 +104,8 @@ export default function NewsDetailPage() {
     );
   }
 
-  const publishedDate = typeof newsItem.publishedAt === 'string' 
-    ? new Date(newsItem.publishedAt) 
+  const publishedDate = typeof newsItem.publishedAt === 'string'
+    ? new Date(newsItem.publishedAt)
     : newsItem.publishedAt;
 
   return (
@@ -155,39 +171,39 @@ export default function NewsDetailPage() {
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-              {summary ? (
+          ) : null}
+
+          <div className="mb-6 p-4 bg-muted/50 rounded-lg">
+            {summary ? (
+              <div>
+                <h2 className="text-lg font-semibold mb-2">Himalaya Summary</h2>
+                <p className="text-muted-foreground leading-relaxed">{summary}</p>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold mb-2">Summary</h2>
-                  <p className="text-muted-foreground">{summary}</p>
+                  <h2 className="text-lg font-semibold mb-1">AI Summary</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Get a comprehensive summary using Himalaya AI
+                  </p>
                 </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold mb-1">AI Summary</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Get an AI-generated summary of this article
-                    </p>
-                  </div>
-                  <Button
-                    onClick={handleSummarize}
-                    disabled={isSummarizing}
-                    size="sm"
-                  >
-                    {isSummarizing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Summarizing...
-                      </>
-                    ) : (
-                      'Generate Summary'
-                    )}
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
+                <Button
+                  onClick={handleSummarize}
+                  disabled={isSummarizing}
+                  size="sm"
+                >
+                  {isSummarizing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Summarizing with Himalaya...
+                    </>
+                  ) : (
+                    'Generate Summary'
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
 
           {/* Actions */}
           <div className="flex gap-4 pt-6 border-t">
