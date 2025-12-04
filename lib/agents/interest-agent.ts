@@ -29,7 +29,7 @@ export class InterestAgent {
 
             // 2. Ask LLM to extract interests
             const { text } = await generateText({
-                model: openai('gpt-4o-mini'), // Use a cheap, fast model
+                model: openai('gpt-4o-mini') as any, // Use a cheap, fast model
                 system: `You are an expert at analyzing user behavior and interests. 
         Analyze the provided chat history and extract the top 5 broad topics the user is interested in.
         Return ONLY a JSON array of strings, e.g., ["Cricket", "Nepal Politics", "Artificial Intelligence"].
