@@ -206,11 +206,11 @@ export async function POST(req: NextRequest) {
           let weatherData: WeatherData | null = null;
 
           // Parallelize research and weather fetch
-          // const tasks: Promise<unknown>[] = []; // Removed blocking tasks array
+          const tasks: Promise<unknown>[] = [];
 
           if (WebResearchAgent.detectIntent(lastUserMessage)) {
-            // Start research but DON'T await - let it run in background
-            WebResearchAgent.research(lastUserMessage, userLocation, (status) => {
+            // Start research and track it
+            tasks.push(WebResearchAgent.research(lastUserMessage, userLocation, (status) => {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status })}\n\n`));
             }).then(res => {
               researchData = res as ResearchData;
@@ -221,19 +221,19 @@ export async function POST(req: NextRequest) {
                 );
               }
               return res;
-            });
+            }));
           }
 
           if (isWeatherQuery && userLocation) {
-            fetch(
+            tasks.push(fetch(
               `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/weather?lat=${userLocation.latitude}&lon=${userLocation.longitude}&city=${userLocation.city || ''}`
-            ).then(res => res.ok ? res.json() : null).then(data => weatherData = data as WeatherData).catch(err => console.error('Weather fetch failed:', err));
+            ).then(res => res.ok ? res.json() : null).then(data => weatherData = data as WeatherData).catch(err => console.error('Weather fetch failed:', err)));
           }
 
-          // Removed blocking await
-          // if (tasks.length > 0) {
-          //   await Promise.all(tasks);
-          // }
+          // Wait for research to complete so the AI has context
+          if (tasks.length > 0) {
+            await Promise.all(tasks);
+          }
 
           // Get provider
           const provider = modelRouter.getProvider(model);
