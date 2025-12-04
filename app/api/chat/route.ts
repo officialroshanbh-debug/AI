@@ -242,12 +242,13 @@ export async function POST(req: NextRequest) {
 
           // Add weather context
           if (weatherData && isWeatherQuery) {
-            const weatherContext = `Current weather in ${weatherData.location.name}, ${weatherData.location.country}:
-      - Temperature: ${weatherData.current.temp}°C (feels like ${weatherData.current.feels_like}°C)
-      - Condition: ${weatherData.current.weather[0]?.description || 'Unknown'}
-      - Humidity: ${weatherData.current.humidity}%
-      - Wind Speed: ${weatherData.current.wind_speed} km/h
-      - Pressure: ${weatherData.current.pressure} hPa`;
+            const data = weatherData as WeatherData;
+            const weatherContext = `Current weather in ${data.location.name}, ${data.location.country}:
+      - Temperature: ${data.current.temp}°C (feels like ${data.current.feels_like}°C)
+      - Condition: ${data.current.weather[0]?.description || 'Unknown'}
+      - Humidity: ${data.current.humidity}%
+      - Wind Speed: ${data.current.wind_speed} km/h
+      - Pressure: ${data.current.pressure} hPa`;
 
             enhancedMessages.splice(-1, 0, {
               role: 'system',
@@ -256,10 +257,10 @@ export async function POST(req: NextRequest) {
           }
 
           // Add research context if available
-          if (researchData && researchData.context) {
+          if (researchData && (researchData as ResearchData).context) {
             enhancedMessages.splice(-1, 0, {
               role: 'system',
-              content: researchData.context,
+              content: (researchData as ResearchData).context,
             });
           }
 
