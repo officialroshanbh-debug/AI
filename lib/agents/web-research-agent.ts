@@ -110,19 +110,25 @@ export class WebResearchAgent {
                 const { performNewsSearch } = await import('@/lib/research/news-search');
                 const newsResults = await performNewsSearch(query, targetCountryCode);
 
-                // 2. Targeted Web Search (Specific logic for Nepal, generic for others)
-                let targetedQuery = query;
-                if (targetCountryCode === 'np') {
-                    targetedQuery = `${query} site:onlinekhabar.com OR site:ekantipur.com OR site:setopati.com OR site:ratopati.com OR site:thehimalayantimes.com`;
+                // 2. Targeted Web Search (Conditional)
+                // Only do web search if news results are insufficient (< 3)
+                if (newsResults.length < 3) {
+                    let targetedQuery = query;
+                    if (targetCountryCode === 'np') {
+                        targetedQuery = `${query} site:onlinekhabar.com OR site:ekantipur.com OR site:setopati.com OR site:ratopati.com OR site:thehimalayantimes.com`;
+                    } else {
+                        // For other countries, just append "news" to ensure freshness if not already present
+                        if (!lowerQuery.includes('news')) targetedQuery += ' news';
+                    }
+
+                    // Use fastMode=true to skip deep scraping for these supplementary results
+                    const webResults = await performWebSearch(targetedQuery, 5 - newsResults.length, true);
+
+                    // Combine results
+                    results = [...newsResults, ...webResults];
                 } else {
-                    // For other countries, just append "news" to ensure freshness if not already present
-                    if (!lowerQuery.includes('news')) targetedQuery += ' news';
+                    results = newsResults.slice(0, 5);
                 }
-
-                const webResults = await performWebSearch(targetedQuery, 5);
-
-                // Combine results
-                results = [...newsResults, ...webResults];
 
                 // Deduplicate
                 const seenUrls = new Set();
@@ -171,7 +177,7 @@ ${results.map((r, i) => `
 [${i + 1}] Title: ${r.title}
 Source: ${r.url}
 Snippet: ${r.snippet}
-Content: ${r.content.slice(0, 800)}...
+Content: ${r.content.slice(0, 300)}...
 `).join('\n\n')}
 `;
 

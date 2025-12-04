@@ -7,9 +7,22 @@ export interface SearchResult {
     snippet: string;
 }
 
-export async function performWebSearch(query: string, limit: number = 5): Promise<SearchResult[]> {
+import { getCachedSearch, setCachedSearch } from './cache';
+
+export async function performWebSearch(
+    query: string,
+    limit: number = 5,
+    fastMode: boolean = false
+): Promise<SearchResult[]> {
+    // Check cache first
+    const cached = getCachedSearch(query);
+    if (cached) {
+        console.log('[Search] Cache hit');
+        return cached;
+    }
+
     const results: SearchResult[] = [];
-    console.log(`[Search] Performing search for: "${query}"`);
+    console.log(`[Search] Performing search for: "${query}" (FastMode: ${fastMode})`);
 
     try {
         // 1. Try Jina Search first
@@ -39,6 +52,7 @@ export async function performWebSearch(query: string, limit: number = 5): Promis
                         snippet: item.description || item.content?.substring(0, 200) || '',
                     });
                 }
+                setCachedSearch(query, results);
                 return results;
             }
         }
@@ -61,26 +75,68 @@ export async function performWebSearch(query: string, limit: number = 5): Promis
                     snippet?: string;
                 }
 
-                // Now scrape each result with Jina Reader in parallel
-                const scrapePromises = (googleData.items || []).map(async (item: GoogleSearchItem) => {
-                    try {
-                        const readResponse = await fetch(`https://r.jina.ai/${encodeURIComponent(item.link)}`, {
-                            headers: {
-                                'Accept': 'application/json',
-                                'X-Return-Format': 'json',
-                            },
-                        });
+                if (fastMode) {
+                    // Skip Jina Reader scraping, just return Google snippets
+                    const basicResults = (googleData.items || []).slice(0, limit).map((item: GoogleSearchItem) => ({
+                        url: item.link,
+                        title: item.title,
+                        content: item.snippet || '',
+                        snippet: item.snippet || '',
+                    }));
+                    results.push(...basicResults);
+                } else {
+                    // Scrape timeout constant
+                    const SCRAPE_TIMEOUT = 3000; // 3 seconds max per URL
 
-                        if (readResponse.ok) {
-                            const pageData = await readResponse.json();
-                            return {
-                                url: item.link,
-                                title: pageData.title || item.title,
-                                content: pageData.content || '',
-                                snippet: pageData.description || item.snippet || '',
-                            };
-                        } else {
-                            // If read fails, return basic Google result
+                    const scrapeWithTimeout = async (promise: Promise<any>, timeout: number) => {
+                        return Promise.race([
+                            promise,
+                            new Promise((_, reject) =>
+                                setTimeout(() => reject(new Error('Timeout')), timeout)
+                            )
+                        ]);
+                    };
+
+                    // Now scrape each result with Jina Reader in parallel
+                    const scrapePromises = (googleData.items || []).map(async (item: GoogleSearchItem) => {
+                        try {
+                            // Create an AbortController for the fetch
+                            const controller = new AbortController();
+                            const timeoutId = setTimeout(() => controller.abort(), SCRAPE_TIMEOUT);
+
+                            const readResponse = await scrapeWithTimeout(
+                                fetch(`https://r.jina.ai/${encodeURIComponent(item.link)}`, {
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'X-Return-Format': 'json',
+                                    },
+                                    signal: controller.signal
+                                }),
+                                SCRAPE_TIMEOUT
+                            );
+
+                            clearTimeout(timeoutId);
+
+                            if (readResponse.ok) {
+                                const pageData = await readResponse.json();
+                                return {
+                                    url: item.link,
+                                    title: pageData.title || item.title,
+                                    content: pageData.content || '',
+                                    snippet: pageData.description || item.snippet || '',
+                                };
+                            } else {
+                                // If read fails, return basic Google result
+                                return {
+                                    url: item.link,
+                                    title: item.title,
+                                    content: '',
+                                    snippet: item.snippet || '',
+                                };
+                            }
+                        } catch (error) {
+                            // console.error(`Failed to read ${item.link}:`, error);
+                            // Return basic result immediately on timeout or error
                             return {
                                 url: item.link,
                                 title: item.title,
@@ -88,20 +144,11 @@ export async function performWebSearch(query: string, limit: number = 5): Promis
                                 snippet: item.snippet || '',
                             };
                         }
-                    } catch (error) {
-                        console.error(`Failed to read ${item.link}:`, error);
-                        // Return basic result even if reading fails
-                        return {
-                            url: item.link,
-                            title: item.title,
-                            content: '',
-                            snippet: item.snippet || '',
-                        };
-                    }
-                });
+                    });
 
-                const scrapedResults = await Promise.all(scrapePromises);
-                results.push(...scrapedResults);
+                    const scrapedResults = await Promise.all(scrapePromises);
+                    results.push(...scrapedResults);
+                }
             } else {
                 console.error('[Search] Google search failed:', await fallbackSearch.text());
             }
@@ -112,6 +159,7 @@ export async function performWebSearch(query: string, limit: number = 5): Promis
         console.error('[Search] Search failed:', error);
     }
 
+    setCachedSearch(query, results);
     return results;
 }
 

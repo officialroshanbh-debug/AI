@@ -1,7 +1,10 @@
 {
   "buildCommand": "prisma generate && (prisma migrate deploy || prisma db push --accept-data-loss --skip-generate) && next build",
   "framework": "nextjs",
-  "regions": ["iad1"],
+  "regions": [
+    "sin1",
+    "iad1"
+  ],
   "functions": {
     "app/api/**/*.ts": {
       "maxDuration": 300

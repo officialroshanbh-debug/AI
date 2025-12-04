@@ -192,9 +192,19 @@ export async function POST(req: NextRequest) {
           const tasks: Promise<any>[] = [];
 
           if (WebResearchAgent.detectIntent(lastUserMessage)) {
+            // Start research but DON'T await - let it run in background
             tasks.push(WebResearchAgent.research(lastUserMessage, userLocation, (status) => {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status })}\n\n`));
-            }).then(res => researchData = res));
+            }).then(res => {
+              researchData = res;
+              // Send citations as soon as available
+              if (res.citations.length > 0) {
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify({ citations: res.citations })}\n\n`)
+                );
+              }
+              return res;
+            }));
           }
 
           if (isWeatherQuery && userLocation) {
@@ -282,13 +292,6 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // Stream citations if available
-          if (researchData && researchData.citations.length > 0) {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ citations: researchData.citations })}\n\n`)
-            );
-          }
-
           // Start streaming immediately
           for await (const chunk of provider.streamModel({
             messages: enhancedMessages.map((m) => ({
@@ -342,13 +345,10 @@ export async function POST(req: NextRequest) {
           console.error('Streaming error:', error);
           controller.error(error);
         } finally {
-          // Ensure all database writes complete even if client disconnects
-          try {
-            await Promise.allSettled(dbWritePromises);
-          } catch (dbError) {
-            console.error('Error completing database writes:', dbError);
-            // Don't throw - we've already sent the response
-          }
+          // Fire and forget - don't await
+          Promise.allSettled(dbWritePromises).catch(dbError => {
+            console.error('Database write error (non-blocking):', dbError);
+          });
         }
       },
     });
