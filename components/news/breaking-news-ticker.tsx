@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { NewsItem } from '@/lib/news/nepal-news-sources';
+import type { SearchResult } from '@/lib/research/search';
 import Link from 'next/link';
 
 export function BreakingNewsTicker() {
@@ -18,7 +19,7 @@ export function BreakingNewsTicker() {
                 const data = await response.json();
 
                 if (data.trending && data.trending.length > 0) {
-                    const mapToNewsItem = (item: any): NewsItem => ({
+                    const mapToNewsItem = (item: SearchResult): NewsItem => ({
                         id: item.url,
                         title: item.title,
                         description: item.snippet,

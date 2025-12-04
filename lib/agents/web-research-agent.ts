@@ -1,6 +1,5 @@
 import { performWebSearch } from '@/lib/research/search';
 import type { SearchResult } from '@/lib/research/search';
-import { generateText } from 'ai';
 import { Citation } from '@/types/ai-models';
 
 export class WebResearchAgent {
