@@ -5,6 +5,8 @@ export interface SearchResult {
     title: string;
     content: string;
     snippet: string;
+    pubDate?: string;
+    imageUrl?: string;
 }
 
 import { getCachedSearch, setCachedSearch } from './cache';

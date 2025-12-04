@@ -57,6 +57,8 @@ export async function performNewsSearch(query: string, country?: string): Promis
             // Use content if available, otherwise description, otherwise title
             content: item.content || item.description || item.title,
             snippet: item.description || item.title,
+            pubDate: item.pubDate,
+            imageUrl: item.image_url,
         }));
 
     } catch (error) {

@@ -69,6 +69,8 @@ model User {
   himalayaTrainingData HimalayaTrainingData[]
   himalayaFineTunes HimalayaFineTune[]
   research      Research[]
+  interests     String[]  @default([]) // List of interested topics e.g. ["Cricket", "Nepal Politics"]
+  lastAnalyzedAt DateTime? // When we last analyzed their history
 }
 
 model VerificationToken {

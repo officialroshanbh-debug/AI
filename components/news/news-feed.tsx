@@ -9,21 +9,19 @@ import type { NewsItem } from '@/lib/news/nepal-news-sources';
 
 const TABS = [
     { id: 'foryou', label: 'For You', icon: Compass, category: null },
-    { id: 'top', label: 'Top', icon: Flame, category: null },
-    { id: 'tech', label: 'Tech & Science', icon: Layers, category: 'tech' as const },
-    { id: 'finance', label: 'Finance', icon: TrendingUp, category: 'finance' as const },
-    { id: 'sports', label: 'Sports', icon: Newspaper, category: 'sports' as const },
-    { id: 'entertainment', label: 'Entertainment', icon: Newspaper, category: 'entertainment' as const },
-    { id: 'science', label: 'Science', icon: Layers, category: 'science' as const },
-    { id: 'politics', label: 'Politics', icon: Newspaper, category: 'politics' as const },
+    { id: 'top', label: 'Trending', icon: Flame, category: null },
+    // { id: 'tech', label: 'Tech & Science', icon: Layers, category: 'tech' as const },
+    // { id: 'finance', label: 'Finance', icon: TrendingUp, category: 'finance' as const },
+    // { id: 'sports', label: 'Sports', icon: Newspaper, category: 'sports' as const },
 ];
 
 export function NewsFeed() {
     const [activeTab, setActiveTab] = useState('foryou');
-    const [allNews, setAllNews] = useState<NewsItem[]>([]);
-    const [newsByCategory, setNewsByCategory] = useState<Record<string, NewsItem[]>>({});
+    const [forYouNews, setForYouNews] = useState<NewsItem[]>([]);
+    const [trendingNews, setTrendingNews] = useState<NewsItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [userInterests, setUserInterests] = useState<string[]>([]);
 
     const fetchNews = async (showRefreshing = false) => {
         if (showRefreshing) {
@@ -33,10 +31,31 @@ export function NewsFeed() {
         }
 
         try {
-            const response = await fetch('/api/news');
+            const response = await fetch('/api/discover');
             const data = await response.json();
-            setAllNews(data.news || []);
-            setNewsByCategory(data.newsByCategory || {});
+
+            // Map API response to NewsItem format
+            const mapToNewsItem = (item: any): NewsItem => ({
+                id: item.url, // Use URL as ID
+                title: item.title,
+                description: item.snippet,
+                link: item.url,
+                source: 'News', // We could parse domain from URL
+                publishedAt: item.pubDate || new Date().toISOString(),
+                imageUrl: item.imageUrl,
+                category: 'General'
+            });
+
+            if (data.forYou) {
+                setForYouNews(data.forYou.map(mapToNewsItem));
+            }
+            if (data.trending) {
+                setTrendingNews(data.trending.map(mapToNewsItem));
+            }
+            if (data.interests) {
+                setUserInterests(data.interests);
+            }
+
         } catch (error) {
             console.error('Error fetching news:', error);
         } finally {
@@ -47,20 +66,10 @@ export function NewsFeed() {
 
     // Get filtered news based on active tab
     const getFilteredNews = (): NewsItem[] => {
-        const tab = TABS.find(t => t.id === activeTab);
-        if (!tab) return allNews;
-        
-        if (tab.category) {
-            return newsByCategory[tab.category] || [];
-        }
-        
         if (activeTab === 'top') {
-            // Show top news (most recent)
-            return allNews.slice(0, 30);
+            return trendingNews;
         }
-        
-        // For You - show mix of all categories
-        return allNews;
+        return forYouNews;
     };
 
     const newsItems = getFilteredNews();
@@ -75,38 +84,54 @@ export function NewsFeed() {
     return (
         <div className="flex flex-col gap-6">
             {/* Header with Tabs and Refresh */}
-            <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                    {TABS.map((tab) => {
-                        const Icon = tab.icon;
-                        const isActive = activeTab === tab.id;
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={cn(
-                                    "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all",
-                                    isActive
-                                        ? "border-primary bg-primary/10 text-primary"
-                                        : "border-transparent bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                                )}
-                            >
-                                <Icon className="h-4 w-4" />
-                                <span className="whitespace-nowrap">{tab.label}</span>
-                            </button>
-                        );
-                    })}
+            <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                        {TABS.map((tab) => {
+                            const Icon = tab.icon;
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={cn(
+                                        "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all",
+                                        isActive
+                                            ? "border-primary bg-primary/10 text-primary"
+                                            : "border-transparent bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                                    )}
+                                >
+                                    <Icon className="h-4 w-4" />
+                                    <span className="whitespace-nowrap">{tab.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => fetchNews(true)}
+                        disabled={isRefreshing}
+                        className="h-8 w-8 shrink-0"
+                        title="Refresh news"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </Button>
                 </div>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => fetchNews(true)}
-                    disabled={isRefreshing}
-                    className="h-8 w-8 shrink-0"
-                    title="Refresh news"
-                >
-                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                </Button>
+
+                {/* Interests Badge (Only on For You tab) */}
+                {activeTab === 'foryou' && userInterests.length > 0 && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
+                        <span>Personalized for:</span>
+                        <div className="flex gap-1 flex-wrap">
+                            {userInterests.map((interest, i) => (
+                                <span key={i} className="bg-secondary/50 px-2 py-0.5 rounded-md text-foreground">
+                                    {interest}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Loading State */}
