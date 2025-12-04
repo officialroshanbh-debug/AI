@@ -47,12 +47,97 @@ export class WebResearchAgent {
     /**
      * Performs web research based on the user's query.
      */
-    static async research(query: string, onProgress?: (status: string) => void): Promise<{ citations: Citation[], context: string }> {
+    /**
+     * Performs web research based on the user's query.
+     */
+    static async research(
+        query: string,
+        userLocation?: { country?: string, city?: string, latitude?: number, longitude?: number },
+        onProgress?: (status: string) => void
+    ): Promise<{ citations: Citation[], context: string }> {
         console.log(`[WebResearchAgent] Searching for: ${query}`);
-        onProgress?.('Searching the web...');
+        onProgress?.('Analyzing research intent...');
+
+        const lowerQuery = query.toLowerCase();
+
+        // Simple country code mapping (expand as needed)
+        const countryMap: Record<string, string> = {
+            'nepal': 'np',
+            'india': 'in',
+            'usa': 'us',
+            'united states': 'us',
+            'uk': 'gb',
+            'united kingdom': 'gb',
+            'china': 'cn',
+            'japan': 'jp',
+            'australia': 'au'
+        };
+
+        // 1. Detect explicit country in query
+        let targetCountryCode: string | undefined;
+        let targetCountryName: string | undefined;
+
+        for (const [name, code] of Object.entries(countryMap)) {
+            if (lowerQuery.includes(name)) {
+                targetCountryCode = code;
+                targetCountryName = name.charAt(0).toUpperCase() + name.slice(1);
+                break;
+            }
+        }
+
+        // 2. If no explicit country, use user location
+        if (!targetCountryCode && userLocation?.country) {
+            const locCountry = userLocation.country.toLowerCase();
+            targetCountryCode = countryMap[locCountry] || undefined; // Try to map if it's a name
+            // If it's already a code (2 letters), use it
+            if (!targetCountryCode && locCountry.length === 2) {
+                targetCountryCode = locCountry;
+            }
+            if (targetCountryCode) {
+                targetCountryName = userLocation.country;
+            }
+        }
+
+        const isNewsIntent = this.detectIntent(query);
+        let results: any[] = [];
 
         try {
-            const results = await performWebSearch(query);
+            // Special handling for Nepal (as requested) or generic local news
+            if (isNewsIntent && targetCountryCode) {
+                onProgress?.(`Fetching latest news for ${targetCountryName || targetCountryCode}...`);
+
+                // 1. Fetch from NewsData.io
+                const { performNewsSearch } = await import('@/lib/research/news-search');
+                const newsResults = await performNewsSearch(query, targetCountryCode);
+
+                // 2. Targeted Web Search (Specific logic for Nepal, generic for others)
+                let targetedQuery = query;
+                if (targetCountryCode === 'np') {
+                    targetedQuery = `${query} site:onlinekhabar.com OR site:ekantipur.com OR site:setopati.com OR site:ratopati.com OR site:thehimalayantimes.com`;
+                } else {
+                    // For other countries, just append "news" to ensure freshness if not already present
+                    if (!lowerQuery.includes('news')) targetedQuery += ' news';
+                }
+
+                const webResults = await performWebSearch(targetedQuery, 5);
+
+                // Combine results
+                results = [...newsResults, ...webResults];
+
+                // Deduplicate
+                const seenUrls = new Set();
+                results = results.filter(item => {
+                    if (seenUrls.has(item.url)) return false;
+                    seenUrls.add(item.url);
+                    return true;
+                });
+
+            } else {
+                // Standard search
+                onProgress?.('Searching the web...');
+                results = await performWebSearch(query);
+            }
+
             onProgress?.(`Found ${results.length} results. Reading content...`);
 
             if (results.length === 0) {
@@ -62,20 +147,22 @@ export class WebResearchAgent {
             // Format citations
             const citations: Citation[] = results.map((result, index) => ({
                 id: `cit-${index}`,
-                source: result.url, // Display URL as source
+                source: result.url,
                 url: result.url,
                 title: result.title,
                 quote: result.snippet,
-                relevance: 1 - (index * 0.1), // Simple relevance decay
+                relevance: 1 - (index * 0.1),
             }));
 
-            // Generate context for the LLM
+            // Generate context
             const context = `
 SYSTEM INSTRUCTION: REAL-TIME WEB RESEARCH RESULTS
 You have been provided with real-time web search results for the query: "${query}".
 You MUST use this information to answer the user's question.
 Do NOT say you don't have real-time access or that you are an AI with a knowledge cutoff.
 The following information is current and accurate as of right now.
+
+${targetCountryName ? `NOTE: The user is interested in news from/about ${targetCountryName}. Prioritize local sources provided below.` : ''}
 
 Cite your sources using [1], [2], etc. corresponding to the order below.
 

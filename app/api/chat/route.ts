@@ -192,7 +192,7 @@ export async function POST(req: NextRequest) {
           const tasks: Promise<any>[] = [];
 
           if (WebResearchAgent.detectIntent(lastUserMessage)) {
-            tasks.push(WebResearchAgent.research(lastUserMessage, (status) => {
+            tasks.push(WebResearchAgent.research(lastUserMessage, userLocation, (status) => {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status })}\n\n`));
             }).then(res => researchData = res));
           }
