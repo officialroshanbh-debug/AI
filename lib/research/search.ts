@@ -134,7 +134,7 @@ export async function performWebSearch(
                                     snippet: item.snippet || '',
                                 };
                             }
-                        } catch (error) {
+                        } catch {
                             // console.error(`Failed to read ${item.link}:`, error);
                             // Return basic result immediately on timeout or error
                             return {

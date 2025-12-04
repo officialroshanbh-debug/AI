@@ -185,18 +185,35 @@ export async function POST(req: NextRequest) {
           dbWritePromises.push(userMessagePromise);
 
           // WEB RESEARCH INTEGRATION (Inside stream for progress updates)
-          let researchData: any = null;
-          let weatherData: any = null;
+          interface ResearchData {
+            citations: any[];
+            context: string;
+          }
+
+          interface WeatherData {
+            location: { name: string; country: string };
+            current: {
+              temp: number;
+              feels_like: number;
+              humidity: number;
+              wind_speed: number;
+              pressure: number;
+              weather: { description: string }[];
+            };
+          }
+
+          let researchData: ResearchData | null = null;
+          let weatherData: WeatherData | null = null;
 
           // Parallelize research and weather fetch
-          const tasks: Promise<any>[] = [];
+          const tasks: Promise<unknown>[] = [];
 
           if (WebResearchAgent.detectIntent(lastUserMessage)) {
             // Start research but DON'T await - let it run in background
             tasks.push(WebResearchAgent.research(lastUserMessage, userLocation, (status) => {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status })}\n\n`));
             }).then(res => {
-              researchData = res;
+              researchData = res as ResearchData;
               // Send citations as soon as available
               if (res.citations.length > 0) {
                 controller.enqueue(
@@ -210,7 +227,7 @@ export async function POST(req: NextRequest) {
           if (isWeatherQuery && userLocation) {
             tasks.push(fetch(
               `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/weather?lat=${userLocation.latitude}&lon=${userLocation.longitude}&city=${userLocation.city || ''}`
-            ).then(res => res.ok ? res.json() : null).then(data => weatherData = data).catch(err => console.error('Weather fetch failed:', err)));
+            ).then(res => res.ok ? res.json() : null).then(data => weatherData = data as WeatherData).catch(err => console.error('Weather fetch failed:', err)));
           }
 
           if (tasks.length > 0) {
