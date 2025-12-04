@@ -44,7 +44,7 @@ export class InterestAgent {
                 // Clean up potential markdown code blocks
                 const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
                 interests = JSON.parse(cleanText);
-            } catch (_e) {
+            } catch {
                 // Fallback or ignore if parsing fails
                 console.warn('Failed to parse interests from LLM');
             }
