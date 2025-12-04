@@ -151,7 +151,7 @@ export default function HistoryPage() {
   };
 
   const shareItem = (item: HistoryItem) => {
-    const shareText = `Query: ${item.query}\nModel: ${MODEL_CONFIGS[item.modelId].name}\nTime: ${formatRelativeTime(item.timestamp)}`;
+    const shareText = `Query: ${item.query}\nModel: ${MODEL_CONFIGS[item.modelId]?.name || item.modelId}\nTime: ${formatRelativeTime(item.timestamp)}`;
     navigator.clipboard.writeText(shareText);
   };
 
@@ -270,7 +270,7 @@ export default function HistoryPage() {
                           {item.type}
                         </Badge>
                         <Badge variant="secondary" className="text-xs">
-                          {MODEL_CONFIGS[item.modelId].name}
+                          {MODEL_CONFIGS[item.modelId]?.name || item.modelId}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
