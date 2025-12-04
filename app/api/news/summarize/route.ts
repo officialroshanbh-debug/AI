@@ -43,14 +43,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // If we still have no content, rely on description or return error
-    if (!articleContent && !description) {
-      return NextResponse.json({
-        summary: "I couldn't access the article content to generate a summary. Please try reading the full article directly.",
-        title,
-        url
-      }, { status: 200 });
-    }
+    // Log what we have for debugging
+    console.log(`[Summarize] Generating summary for: ${title}`, {
+      hasUrl: !!url,
+      hasDescription: !!description,
+      contentLength: articleContent ? articleContent.length : 0
+    });
+
+    // If we still have no content, we'll try to generate a summary from the title/description
+    // rather than failing completely. The prompt handles the missing content warning.
 
     const prompt = `Please provide a comprehensive and insightful summary of the following news article.
 Focus on the key facts, main arguments, and broader context. Maintain a neutral and objective tone.
@@ -60,7 +61,7 @@ URL: ${url}
 ${description ? `Description: ${description}` : ''}
 
 ${articleContent ? `Full Article Content:
-${articleContent.slice(0, 15000)}` : 'Note: Full content could not be retrieved. Please summarize based on the title and description provided above.'}
+${articleContent.slice(0, 15000)}` : 'CRITICAL NOTE: The full article content could not be retrieved. You MUST generate the best possible summary based ONLY on the Title and Description provided above. Do not complain about missing content, just provide the summary of what this article is likely about based on the available information.'}
 
 Summary:`;
 
