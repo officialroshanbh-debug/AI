@@ -72,6 +72,8 @@
     "sharp": "^0.33.2",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
+    "sonner": "^1.7.0",
+    "@ai-sdk/openai": "^1.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
