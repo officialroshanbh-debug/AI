@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Clock, ExternalLink, Heart, MoreHorizontal } from 'lucide-react';
+import { Clock, ExternalLink, Heart, MoreHorizontal, Bookmark } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import type { NewsItem } from '@/lib/news/nepal-news-sources';
+import { toast } from 'sonner';
 
 interface NewsCardProps {
     item: NewsItem;
@@ -12,9 +13,38 @@ interface NewsCardProps {
 }
 
 export function NewsCard({ item, className }: NewsCardProps) {
-    const publishedDate = typeof item.publishedAt === 'string' 
-        ? new Date(item.publishedAt) 
+    const [isBookmarked, setIsBookmarked] = useState(false);
+    const publishedDate = typeof item.publishedAt === 'string'
+        ? new Date(item.publishedAt)
         : item.publishedAt;
+
+    const handleBookmark = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const newStatus = !isBookmarked;
+        setIsBookmarked(newStatus); // Optimistic update
+
+        try {
+            const method = newStatus ? 'POST' : 'DELETE';
+            const res = await fetch('/api/bookmarks', {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    url: item.link,
+                    title: item.title,
+                    source: item.source,
+                    imageUrl: item.imageUrl,
+                }),
+            });
+
+            if (!res.ok) throw new Error('Failed to update bookmark');
+            toast.success(newStatus ? 'Article saved' : 'Removed from bookmarks');
+        } catch (error) {
+            setIsBookmarked(!newStatus); // Revert
+            toast.error('Failed to update bookmark');
+        }
+    };
 
     return (
         <Link
@@ -37,7 +67,7 @@ export function NewsCard({ item, className }: NewsCardProps) {
                         </span>
                     )}
                 </div>
-                <button 
+                <button
                     className="text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
                     onClick={(e) => e.preventDefault()}
                 >
@@ -88,7 +118,17 @@ export function NewsCard({ item, className }: NewsCardProps) {
                     {/* Placeholder for related sources count if we had it */}
                 </div>
                 <div className="flex items-center gap-2">
-                    <button 
+                    <button
+                        className={cn(
+                            "rounded-full p-1.5 transition-colors hover:bg-white/10",
+                            isBookmarked ? "text-primary" : "text-muted-foreground hover:text-primary"
+                        )}
+                        onClick={handleBookmark}
+                        title={isBookmarked ? "Remove bookmark" : "Save article"}
+                    >
+                        <Bookmark className={cn("h-4 w-4", isBookmarked && "fill-current")} />
+                    </button>
+                    <button
                         className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-white/10 hover:text-red-500"
                         onClick={(e) => e.preventDefault()}
                     >

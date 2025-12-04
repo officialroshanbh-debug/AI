@@ -71,6 +71,22 @@ model User {
   research      Research[]
   interests     String[]  @default([]) // List of interested topics e.g. ["Cricket", "Nepal Politics"]
   lastAnalyzedAt DateTime? // When we last analyzed their history
+  savedArticles SavedArticle[]
+}
+
+model SavedArticle {
+  id        String   @id @default(cuid())
+  userId    String
+  url       String
+  title     String
+  source    String
+  imageUrl  String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@unique([userId, url]) // Prevent duplicate saves
 }
 
 model VerificationToken {

@@ -2,9 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { NewsCard } from './news-card';
-import { Compass, Flame, Layers, Newspaper, TrendingUp, RefreshCw } from 'lucide-react';
+import { Compass, Flame, Layers, Newspaper, TrendingUp, RefreshCw, Search, SortAsc } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { NewsItem } from '@/lib/news/nepal-news-sources';
 
 const TABS = [
@@ -15,6 +22,8 @@ const TABS = [
     // { id: 'sports', label: 'Sports', icon: Newspaper, category: 'sports' as const },
 ];
 
+type SortOption = 'newest' | 'oldest';
+
 export function NewsFeed() {
     const [activeTab, setActiveTab] = useState('foryou');
     const [forYouNews, setForYouNews] = useState<NewsItem[]>([]);
@@ -22,6 +31,10 @@ export function NewsFeed() {
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [userInterests, setUserInterests] = useState<string[]>([]);
+
+    // Search & Sort State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [sortBy, setSortBy] = useState<SortOption>('newest');
 
     const fetchNews = async (showRefreshing = false) => {
         if (showRefreshing) {
@@ -46,15 +59,9 @@ export function NewsFeed() {
                 category: 'General'
             });
 
-            if (data.forYou) {
-                setForYouNews(data.forYou.map(mapToNewsItem));
-            }
-            if (data.trending) {
-                setTrendingNews(data.trending.map(mapToNewsItem));
-            }
-            if (data.interests) {
-                setUserInterests(data.interests);
-            }
+            if (data.forYou) setForYouNews(data.forYou.map(mapToNewsItem));
+            if (data.trending) setTrendingNews(data.trending.map(mapToNewsItem));
+            if (data.interests) setUserInterests(data.interests);
 
         } catch (error) {
             console.error('Error fetching news:', error);
@@ -64,15 +71,28 @@ export function NewsFeed() {
         }
     };
 
-    // Get filtered news based on active tab
-    const getFilteredNews = (): NewsItem[] => {
-        if (activeTab === 'top') {
-            return trendingNews;
+    // Filter & Sort Logic
+    const getProcessedNews = (): NewsItem[] => {
+        let items = activeTab === 'top' ? trendingNews : forYouNews;
+
+        // 1. Search Filter
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            items = items.filter(item =>
+                item.title.toLowerCase().includes(query) ||
+                item.description?.toLowerCase().includes(query)
+            );
         }
-        return forYouNews;
+
+        // 2. Sort
+        return [...items].sort((a, b) => {
+            const dateA = new Date(a.publishedAt || 0).getTime();
+            const dateB = new Date(b.publishedAt || 0).getTime();
+            return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
+        });
     };
 
-    const newsItems = getFilteredNews();
+    const newsItems = getProcessedNews();
 
     useEffect(() => {
         fetchNews();
@@ -83,10 +103,11 @@ export function NewsFeed() {
 
     return (
         <div className="flex flex-col gap-6">
-            {/* Header with Tabs and Refresh */}
+            {/* Header Controls */}
             <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    {/* Tabs */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
                         {TABS.map((tab) => {
                             const Icon = tab.icon;
                             const isActive = activeTab === tab.id;
@@ -107,16 +128,46 @@ export function NewsFeed() {
                             );
                         })}
                     </div>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => fetchNews(true)}
-                        disabled={isRefreshing}
-                        className="h-8 w-8 shrink-0"
-                        title="Refresh news"
-                    >
-                        <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    </Button>
+
+                    {/* Actions: Search, Sort, Refresh */}
+                    <div className="flex items-center gap-2">
+                        <div className="relative w-full sm:w-64">
+                            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                placeholder="Search news..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-9 h-9 bg-secondary/30 border-transparent focus:bg-background transition-colors"
+                            />
+                        </div>
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
+                                    <SortAsc className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setSortBy('newest')}>
+                                    Newest First
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setSortBy('oldest')}>
+                                    Oldest First
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => fetchNews(true)}
+                            disabled={isRefreshing}
+                            className="h-9 w-9 shrink-0"
+                            title="Refresh news"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Interests Badge (Only on For You tab) */}
@@ -147,14 +198,14 @@ export function NewsFeed() {
             ) : newsItems.length === 0 ? (
                 <div className="text-center text-muted-foreground py-12">
                     <Newspaper className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No news available at the moment</p>
+                    <p>{searchQuery ? 'No news found matching your search' : 'No news available'}</p>
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => fetchNews(true)}
+                        onClick={() => { setSearchQuery(''); fetchNews(true); }}
                         className="mt-4"
                     >
-                        Try again
+                        Clear Search & Refresh
                     </Button>
                 </div>
             ) : (

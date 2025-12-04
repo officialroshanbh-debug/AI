@@ -4,9 +4,12 @@ import { Newspaper } from 'lucide-react';
 import { InterestsWidget } from '@/components/discover/interests-widget';
 import { WeatherWidget } from '@/components/discover/weather-widget';
 
+import { BreakingNewsTicker } from '@/components/news/breaking-news-ticker';
+
 export default function DiscoverPage() {
     return (
         <div className="min-h-screen bg-background">
+            <BreakingNewsTicker />
             <div className="container py-8">
                 {/* Header */}
                 <div className="mb-8 flex items-center justify-between">
