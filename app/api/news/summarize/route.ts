@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { HimalayaProvider } from '@/lib/models/himalaya-provider';
-import { MODEL_IDS } from '@/types/ai-models';
 
 export const maxDuration = 60; // Increased duration for longer content
 

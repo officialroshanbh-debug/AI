@@ -22,10 +22,6 @@ export default function NewsDetailPage() {
       try {
         // Reconstruct URL from catch-all params
         const idParam = params.id;
-        const newsId = Array.isArray(idParam)
-          ? idParam.map(segment => decodeURIComponent(segment)).join('/')
-          : idParam;
-
         // Encode the ID for the API call
         // If it's a URL, we need to encode each segment or the whole thing safely
         // Since we changed the API to accept [...id], we can pass the segments as is

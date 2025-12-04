@@ -18,8 +18,8 @@ export async function GET(
     const urlString = params.id.map(segment => decodeURIComponent(segment)).join('/');
 
     // Check if it's a valid URL or just an ID
-    let newsId = urlString;
-    let targetUrl = urlString;
+    const newsId = urlString;
+    const targetUrl = urlString;
 
     // Fetch all recent news to find the item in cache first
     const allNews = await fetchAllNews(200, 4);
