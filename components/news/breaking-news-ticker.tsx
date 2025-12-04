@@ -24,9 +24,10 @@ export function BreakingNewsTicker() {
                         description: item.snippet,
                         link: item.url,
                         source: 'News',
-                        publishedAt: item.pubDate || new Date().toISOString(),
+                        sourceUrl: item.url,
+                        publishedAt: item.pubDate ? new Date(item.pubDate) : new Date(),
                         imageUrl: item.imageUrl,
-                        category: 'General'
+                        category: 'general'
                     });
                     setNews(data.trending.slice(0, 5).map(mapToNewsItem));
                 }

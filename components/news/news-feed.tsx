@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { NewsCard } from './news-card';
 import { Compass, Flame, Newspaper, RefreshCw, Search, SortAsc } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { SearchResult } from '@/lib/research/search';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -48,15 +49,16 @@ export function NewsFeed() {
             const data = await response.json();
 
             // Map API response to NewsItem format
-            const mapToNewsItem = (item: any): NewsItem => ({
+            const mapToNewsItem = (item: SearchResult): NewsItem => ({
                 id: item.url, // Use URL as ID
                 title: item.title,
                 description: item.snippet,
                 link: item.url,
                 source: 'News', // We could parse domain from URL
-                publishedAt: item.pubDate || new Date().toISOString(),
+                sourceUrl: item.url,
+                publishedAt: item.pubDate ? new Date(item.pubDate) : new Date(),
                 imageUrl: item.imageUrl,
-                category: 'General'
+                category: 'general'
             });
 
             if (data.forYou) setForYouNews(data.forYou.map(mapToNewsItem));

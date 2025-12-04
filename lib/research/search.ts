@@ -90,10 +90,10 @@ export async function performWebSearch(
                     // Scrape timeout constant
                     const SCRAPE_TIMEOUT = 3000; // 3 seconds max per URL
 
-                    const scrapeWithTimeout = async (promise: Promise<any>, timeout: number) => {
+                    const scrapeWithTimeout = async <T>(promise: Promise<T>, timeout: number): Promise<T> => {
                         return Promise.race([
                             promise,
-                            new Promise((_, reject) =>
+                            new Promise<T>((_, reject) =>
                                 setTimeout(() => reject(new Error('Timeout')), timeout)
                             )
                         ]);

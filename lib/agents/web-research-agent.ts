@@ -1,4 +1,6 @@
 import { performWebSearch } from '@/lib/research/search';
+import type { SearchResult } from '@/lib/research/search';
+import { generateText } from 'ai';
 import { Citation } from '@/types/ai-models';
 
 export class WebResearchAgent {
@@ -99,7 +101,7 @@ export class WebResearchAgent {
         }
 
         const isNewsIntent = this.detectIntent(query);
-        let results: any[] = [];
+        let results: SearchResult[] = [];
 
         try {
             // Special handling for Nepal (as requested) or generic local news
