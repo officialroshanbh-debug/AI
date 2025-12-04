@@ -53,7 +53,7 @@ export async function DELETE(req: Request) {
     }
 }
 
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
     try {
         const session = await auth();
         if (!session?.user) {

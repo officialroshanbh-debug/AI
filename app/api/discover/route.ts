@@ -4,7 +4,7 @@ import { InterestAgent } from '@/lib/agents/interest-agent';
 import { performNewsSearch } from '@/lib/research/news-search';
 import { NextResponse } from 'next/server';
 
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
     try {
         const session = await auth();
         if (!session?.user) {

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import type { NewsItem } from '@/lib/news/nepal-news-sources';
 import Link from 'next/link';
 

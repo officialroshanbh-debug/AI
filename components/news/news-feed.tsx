@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { NewsCard } from './news-card';
-import { Compass, Flame, Layers, Newspaper, TrendingUp, RefreshCw, Search, SortAsc } from 'lucide-react';
+import { Compass, Flame, Newspaper, RefreshCw, Search, SortAsc } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

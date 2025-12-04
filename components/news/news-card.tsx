@@ -40,7 +40,7 @@ export function NewsCard({ item, className }: NewsCardProps) {
 
             if (!res.ok) throw new Error('Failed to update bookmark');
             toast.success(newStatus ? 'Article saved' : 'Removed from bookmarks');
-        } catch (error) {
+        } catch (_error) {
             setIsBookmarked(!newStatus); // Revert
             toast.error('Failed to update bookmark');
         }
