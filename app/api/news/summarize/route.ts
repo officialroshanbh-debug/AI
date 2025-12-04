@@ -50,8 +50,14 @@ export async function POST(req: NextRequest) {
       contentLength: articleContent ? articleContent.length : 0
     });
 
-    // If we still have no content, we'll try to generate a summary from the title/description
-    // rather than failing completely. The prompt handles the missing content warning.
+    // If we still have no content, we cannot generate a reliable summary
+    if (!articleContent || articleContent.length < 100) {
+      return NextResponse.json({
+        summary: "I couldn't access the full article content. To ensure accuracy and avoid misinformation, I cannot generate a summary without reading the source text. Please try reading the full article directly.",
+        title,
+        url
+      }, { status: 200 });
+    }
 
     const prompt = `Please provide a comprehensive and insightful summary of the following news article.
 Focus on the key facts, main arguments, and broader context. Maintain a neutral and objective tone.
@@ -60,8 +66,8 @@ Title: ${title}
 URL: ${url}
 ${description ? `Description: ${description}` : ''}
 
-${articleContent ? `Full Article Content:
-${articleContent.slice(0, 15000)}` : 'CRITICAL NOTE: The full article content could not be retrieved. You MUST generate the best possible summary based ONLY on the Title and Description provided above. Do not complain about missing content, just provide the summary of what this article is likely about based on the available information.'}
+Full Article Content:
+${articleContent.slice(0, 15000)}
 
 Summary:`;
 
