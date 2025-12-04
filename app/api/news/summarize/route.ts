@@ -21,6 +21,20 @@ export async function POST(req: NextRequest) {
     // Use Himalaya model for summarization
     const provider = new HimalayaProvider();
 
+    // If content is missing, try to scrape it
+    let articleContent = content;
+    if (!articleContent && url) {
+      try {
+        const { scrapeArticleContent } = await import('@/lib/news/content-scraper');
+        const scraped = await scrapeArticleContent(url);
+        if (scraped && scraped.content) {
+          articleContent = scraped.content;
+        }
+      } catch (e) {
+        console.warn('Failed to scrape content for summary:', e);
+      }
+    }
+
     const prompt = `Please provide a comprehensive and insightful summary of the following news article. 
 Focus on the key facts, main arguments, and broader context. Maintain a neutral and objective tone.
 
@@ -28,8 +42,8 @@ Title: ${title}
 URL: ${url}
 ${description ? `Description: ${description}` : ''}
 
-${content ? `Full Article Content:
-${content.slice(0, 15000)}` : ''}
+${articleContent ? `Full Article Content:
+${articleContent.slice(0, 15000)}` : ''}
 
 Summary:`;
 
