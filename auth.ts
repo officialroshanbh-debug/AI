@@ -87,6 +87,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         userId: user.id,
         email: user.email,
       });
+
+      // Trigger news crawl for new user
+      try {
+        const { fetchAllNews } = await import('@/lib/news/news-fetcher');
+        // Run in background without awaiting to not block auth
+        fetchAllNews(50, 4).catch(err =>
+          console.error('[Auth] Failed to crawl news for new user:', err)
+        );
+      } catch (error) {
+        console.error('[Auth] Error importing news fetcher:', error);
+      }
     },
     async linkAccount({ user, account }) {
       console.log('[Auth] Account linked:', {

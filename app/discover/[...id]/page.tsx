@@ -54,6 +54,16 @@ export default function NewsDetailPage() {
     }
   }, [params.id]);
 
+  // Auto-summarize effect
+  useEffect(() => {
+    if (newsItem && !summary && !isSummarizing && !isLoading) {
+      // Check if we have enough content to summarize
+      if (newsItem.fullContent || newsItem.link) {
+        handleSummarize();
+      }
+    }
+  }, [newsItem, summary, isSummarizing, isLoading]);
+
   const handleSummarize = async () => {
     if (!newsItem) return;
 
