@@ -56,11 +56,25 @@ export async function GET(
       const jinaResults = await readUrls([targetUrl]);
       if (jinaResults && jinaResults.length > 0) {
         const result = jinaResults[0];
+
+        // Better title extraction
+        let title = result.title;
+        if (!title || title === targetUrl || title.includes('http')) {
+          // Try to extract from URL slug
+          const urlObj = new URL(targetUrl);
+          const slug = urlObj.pathname.split('/').pop() || '';
+          if (slug) {
+            title = slug.replace(/-/g, ' ').replace(/\d+/g, '').trim();
+            // Capitalize first letter of each word
+            title = title.replace(/\b\w/g, l => l.toUpperCase());
+          }
+        }
+
         const enrichedItem: NewsItem = {
           ...newsItem,
-          title: result.title || newsItem.title,
+          title: title || newsItem.title,
           fullContent: result.content,
-          summary: result.snippet || result.content.slice(0, 300) + '...',
+          summary: result.snippet || (result.content ? result.content.slice(0, 300) + '...' : ''),
           description: result.snippet || newsItem.description,
         };
         return NextResponse.json({ newsItem: enrichedItem }, { status: 200 });
@@ -77,7 +91,7 @@ export async function GET(
         ...newsItem,
         title: scrapedContent.title || newsItem.title,
         fullContent: scrapedContent.content,
-        summary: scrapedContent.content.slice(0, 300) + '...', // Auto-generate summary from content
+        summary: scrapedContent.content ? scrapedContent.content.slice(0, 300) + '...' : '', // Auto-generate summary from content
         imageUrl: scrapedContent.imageUrl || newsItem.imageUrl,
         publishedAt: scrapedContent.publishedDate || newsItem.publishedAt,
       };

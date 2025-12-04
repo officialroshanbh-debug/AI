@@ -80,7 +80,7 @@ export function NewsCard({ item, className }: NewsCardProps) {
                 {/* Text Content */}
                 <div className="flex flex-1 flex-col justify-between gap-2">
                     <div>
-                        <h3 className="line-clamp-2 text-lg font-semibold leading-tight tracking-tight text-foreground group-hover:text-primary transition-colors">
+                        <h3 className="line-clamp-3 text-lg font-semibold leading-tight tracking-tight text-foreground group-hover:text-primary transition-colors">
                             {item.title}
                         </h3>
                         {item.description && (

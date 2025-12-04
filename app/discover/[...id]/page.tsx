@@ -34,11 +34,11 @@ export default function NewsDetailPage() {
           // Use full content as summary if available, or existing summary
           if (data.newsItem.fullContent) {
             // Don't auto-set summary from content, let user generate it with AI
-            // unless it's already summarized
-            if (data.newsItem.summary && data.newsItem.summary.length < 500) {
+            // unless it's already summarized and meaningful
+            if (data.newsItem.summary && data.newsItem.summary.length > 20 && data.newsItem.summary !== '...') {
               setSummary(data.newsItem.summary);
             }
-          } else if (data.newsItem.summary) {
+          } else if (data.newsItem.summary && data.newsItem.summary.length > 20) {
             setSummary(data.newsItem.summary);
           }
         }
