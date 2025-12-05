@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 
 // Mock list of NEPSE stocks for demo
 const STOCK_LIST = [
@@ -90,14 +91,23 @@ export function StockSearch() {
                     {results.map((stock) => (
                         <div
                             key={stock.symbol}
-                            className="flex items-center justify-between p-3 hover:bg-muted/50 cursor-pointer transition-colors"
-                            onClick={() => addToWatchlist(stock)}
+                            className="flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
                         >
-                            <div>
-                                <div className="font-medium">{stock.symbol}</div>
-                                <div className="text-xs text-muted-foreground">{stock.name}</div>
-                            </div>
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                            <Link href={`/finance/stock/${stock.symbol}`} className="flex-1 cursor-pointer">
+                                <div>
+                                    <div className="font-medium">{stock.symbol}</div>
+                                    <div className="text-xs text-muted-foreground">{stock.name}</div>
+                                </div>
+                            </Link>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    addToWatchlist(stock);
+                                }}
+                            >
                                 <Plus className="h-4 w-4" />
                             </Button>
                         </div>
