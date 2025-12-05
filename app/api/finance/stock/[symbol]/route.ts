@@ -8,9 +8,9 @@ export async function GET(
     req: Request,
     { params }: { params: Promise<{ symbol: string }> }
 ) {
+    const { symbol } = await params;
     try {
         const session = await auth();
-        const { symbol } = await params;
 
         // 1. Fetch Company Details (Static info like Sector)
         const companyDetails = await scrapeCompanyDetails(symbol);
@@ -80,7 +80,7 @@ export async function GET(
         });
 
     } catch (error) {
-        console.error(`Error fetching data for ${params.symbol}:`, error);
+        console.error(`Error fetching data for ${symbol}:`, error);
         return NextResponse.json({ error: 'Failed to fetch company data' }, { status: 500 });
     }
 }

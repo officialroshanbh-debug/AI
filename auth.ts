@@ -39,7 +39,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (user) {
           token.id = user.id;
           token.email = user.email;
-          console.log('[Auth] JWT Callback - User signed in:', { userId: user.id, email: user.email });
+          token.role = (user as any).role; // Type assertion needed as User type might not be fully inferred here despite d.ts
+          console.log('[Auth] JWT Callback - User signed in:', { userId: user.id, email: user.email, role: token.role });
         }
         return token;
       } catch (error) {
@@ -51,6 +52,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       try {
         if (token && session.user) {
           session.user.id = token.id as string;
+          session.user.role = token.role as string;
         }
         return session;
       } catch (error) {
