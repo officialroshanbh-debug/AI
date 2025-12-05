@@ -163,7 +163,7 @@ export async function scrapeShareSansarMarket(): Promise<MarketData | null> {
 
         let gainers: any[] = [];
         let losers: any[] = [];
-        let stocks: any[] = [];
+        const stocks: any[] = [];
 
         if (results && results.length > 0 && results[0].content) {
             const content = results[0].content;
@@ -173,8 +173,6 @@ export async function scrapeShareSansarMarket(): Promise<MarketData | null> {
             // We need to be careful with column indices. 
             // Based on dump: | 330 | [VLBS] | 29.90 | 778.00 | ...
             // It seems Jina output might vary. Let's try to find rows with Symbol and numbers.
-
-            const rows = content.match(/\|[^|]+\|\[([^\]]+)\]\([^)]+\)\|[^|]+\|([\d,]+(?:\.\d+)?)\|[^|]+\|[^|]+\|([\d,]+(?:\.\d+)?)\|[^|]+\|[^|]+\|[^|]+\|[^|]+\|([^|]+)\|[^|]+\|([^|]+)\|/g);
 
             // The regex above is too specific and likely to fail. Let's iterate lines.
             const lines = content.split('\n');
