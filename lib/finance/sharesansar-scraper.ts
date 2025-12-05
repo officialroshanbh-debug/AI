@@ -123,3 +123,131 @@ export async function scrapeCompanyDetails(symbol: string): Promise<CompanyDetai
         return null;
     }
 }
+
+export interface MarketData {
+    index: {
+        value: number;
+        change: number;
+        percentChange: number;
+        status: 'up' | 'down' | 'neutral';
+        asOf: string;
+    };
+    marketSummary: {
+        totalTurnover: string;
+        totalTradedShares: string;
+        totalTransactions: string;
+        totalScripsTraded: string;
+        totalMarketCap: string;
+    };
+    gainers: Array<{
+        symbol: string;
+        name: string;
+        price: number;
+        change: number;
+        percentChange: number;
+    }>;
+    losers: Array<{
+        symbol: string;
+        name: string;
+        price: number;
+        change: number;
+        percentChange: number;
+    }>;
+}
+
+export async function scrapeShareSansarMarket(): Promise<MarketData | null> {
+    try {
+        // 1. Fetch Today's Price for Gainers/Losers
+        const priceUrl = 'https://www.sharesansar.com/today-share-price';
+        const results = await readUrls([priceUrl]);
+
+        let gainers: any[] = [];
+        let losers: any[] = [];
+        let stocks: any[] = [];
+
+        if (results && results.length > 0 && results[0].content) {
+            const content = results[0].content;
+
+            // Parse table rows
+            // Format seen: | S.N. | Symbol | ... | Close | ... | Diff | ... | Diff % | ...
+            // We need to be careful with column indices. 
+            // Based on dump: | 330 | [VLBS] | 29.90 | 778.00 | ...
+            // It seems Jina output might vary. Let's try to find rows with Symbol and numbers.
+
+            const rows = content.match(/\|[^|]+\|\[([^\]]+)\]\([^)]+\)\|[^|]+\|([\d,]+(?:\.\d+)?)\|[^|]+\|[^|]+\|([\d,]+(?:\.\d+)?)\|[^|]+\|[^|]+\|[^|]+\|[^|]+\|([^|]+)\|[^|]+\|([^|]+)\|/g);
+
+            // The regex above is too specific and likely to fail. Let's iterate lines.
+            const lines = content.split('\n');
+            for (const line of lines) {
+                if (line.trim().startsWith('|') && line.includes('[')) {
+                    const cols = line.split('|').map(c => c.trim()).filter(c => c);
+                    // Expected: [SN, SymbolLink, Conf, Open, High, Low, Close, ...]
+                    // We need to identify columns by content type.
+                    // Symbol is usually in col 1 (0-indexed in array after split/filter)
+
+                    if (cols.length > 10) {
+                        const symbolMatch = cols[1].match(/\[([^\]]+)\]/);
+                        const symbol = symbolMatch ? symbolMatch[1] : cols[1];
+
+                        // We need to find Close, Diff, Diff %
+                        // Usually Close is around col 6, Diff around 11, Diff % around 13
+                        // Let's try to parse numbers from the end or specific positions if consistent.
+                        // From dump: | 330 | [VLBS] | ... | 784.00 | ... | -6.90 | ... | -0.87 | ...
+                        // Let's assume standard columns for now or try to map.
+
+                        // Heuristic: 
+                        // Col 1: Symbol
+                        // Col 6: Close (784.00)
+                        // Col 11: Diff (-6.90)
+                        // Col 13: Diff % (-0.87)
+
+                        const close = parseFloat(cols[6].replace(/,/g, ''));
+                        const diff = parseFloat(cols[11].replace(/,/g, ''));
+                        const diffPercent = parseFloat(cols[13].replace(/,/g, ''));
+
+                        if (!isNaN(close)) {
+                            stocks.push({
+                                symbol,
+                                name: symbol, // We don't have full name easily here
+                                price: close,
+                                change: diff || 0,
+                                percentChange: diffPercent || 0
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Sort stocks
+            stocks.sort((a, b) => b.percentChange - a.percentChange);
+            gainers = stocks.slice(0, 5);
+            losers = stocks.slice(-5).reverse();
+        }
+
+        // 2. Fetch Homepage for Index (if possible)
+        // For now, we'll return 0 for index if we can't find it, relying on the partial data fix.
+
+        return {
+            index: {
+                value: 0,
+                change: 0,
+                percentChange: 0,
+                status: 'neutral',
+                asOf: new Date().toISOString()
+            },
+            marketSummary: {
+                totalTurnover: '0',
+                totalTradedShares: '0',
+                totalTransactions: '0',
+                totalScripsTraded: stocks.length.toString(),
+                totalMarketCap: '0'
+            },
+            gainers,
+            losers
+        };
+
+    } catch (error) {
+        console.error('Error scraping ShareSansar market data:', error);
+        return null;
+    }
+}

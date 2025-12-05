@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { scrapeNepseData } from '@/lib/finance/nepse-scraper';
+import { scrapeShareSansarMarket } from '@/lib/finance/sharesansar-scraper';
 
 // Using a free unofficial NEPSE API
 // Source: https://nepse-data-api.vercel.app (or similar community API)
@@ -14,7 +14,7 @@ import { scrapeNepseData } from '@/lib/finance/nepse-scraper';
 export async function GET() {
     try {
         // Try to scrape real data first
-        const realData = await scrapeNepseData();
+        const realData = await scrapeShareSansarMarket();
 
         if (realData && (realData.index.value > 0 || realData.gainers.length > 0)) {
             return NextResponse.json({
