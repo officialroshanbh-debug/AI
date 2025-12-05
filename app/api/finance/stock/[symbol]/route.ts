@@ -6,11 +6,11 @@ import { auth } from '@/auth';
 
 export async function GET(
     req: Request,
-    { params }: { params: { symbol: string } }
+    { params }: { params: Promise<{ symbol: string }> }
 ) {
     try {
         const session = await auth();
-        const { symbol } = params;
+        const { symbol } = await params;
 
         // 1. Fetch Company Details (Static info like Sector)
         const companyDetails = await scrapeCompanyDetails(symbol);
