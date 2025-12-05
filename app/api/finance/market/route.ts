@@ -16,7 +16,7 @@ export async function GET() {
         // Try to scrape real data first
         const realData = await scrapeNepseData();
 
-        if (realData && realData.index.value > 0) {
+        if (realData && (realData.index.value > 0 || realData.gainers.length > 0)) {
             return NextResponse.json({
                 indices: [
                     { name: 'NEPSE', ...realData.index },
