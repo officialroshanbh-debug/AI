@@ -8,7 +8,7 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-const EMBEDDING_MODEL = 'text-embedding-ada-002';
+const EMBEDDING_MODEL = 'text-embedding-3-small';
 
 export interface EmbeddingResult {
     embedding: number[];
