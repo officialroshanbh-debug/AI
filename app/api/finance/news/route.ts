@@ -1,4 +1,3 @@
-```
 import { NextResponse } from 'next/server';
 import { scrapeShareSansarNews } from '@/lib/finance/sharesansar-scraper';
 
@@ -6,7 +5,7 @@ export async function GET() {
     try {
         // Scrape real news from ShareSansar
         const newsItems = await scrapeShareSansarNews();
-        
+
         if (newsItems.length > 0) {
             return NextResponse.json({
                 status: 'success',
@@ -16,7 +15,7 @@ export async function GET() {
 
         // Fallback to mock data if scraping fails
         console.warn('ShareSansar scraping failed, using mock data');
-        
+
         return NextResponse.json({
             status: 'success',
             results: [
@@ -44,4 +43,3 @@ export async function GET() {
         );
     }
 }
-```

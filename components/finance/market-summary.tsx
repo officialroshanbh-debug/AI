@@ -30,8 +30,8 @@ export function MarketSummary({ news, isLoading }: MarketSummaryProps) {
                     const data = await res.json();
                     setSummary(data.summary);
                 }
-            } catch (error) {
-                console.error('Failed to fetch market summary');
+            } catch {
+                // Ignore error and show default message
             } finally {
                 setIsSummaryLoading(false);
             }
