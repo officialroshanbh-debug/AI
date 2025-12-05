@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, TrendingUp, TrendingDown, Trash2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -56,7 +56,7 @@ export function Watchlist({ gainers, losers }: WatchlistProps) {
                 setWatchlist(prev => prev.filter(item => item.id !== id));
                 toast.success('Removed from watchlist');
             }
-        } catch (error) {
+        } catch {
             toast.error('Failed to remove');
         }
     };
