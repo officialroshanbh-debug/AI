@@ -1,7 +1,10 @@
 'use client';
 
-import { Plus, TrendingUp, TrendingDown } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Plus, TrendingUp, TrendingDown, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 
 interface Stock {
     symbol: string;
@@ -11,45 +14,101 @@ interface Stock {
     percentChange: number;
 }
 
+interface WatchlistItem {
+    id: string;
+    symbol: string;
+    name: string;
+}
+
 interface WatchlistProps {
     gainers: Stock[];
     losers: Stock[];
 }
 
 export function Watchlist({ gainers, losers }: WatchlistProps) {
+    const { data: session } = useSession();
+    const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        if (session?.user) {
+            fetchWatchlist();
+        }
+    }, [session]);
+
+    const fetchWatchlist = async () => {
+        try {
+            const res = await fetch('/api/finance/watchlist');
+            if (res.ok) {
+                const data = await res.json();
+                setWatchlist(data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch watchlist:', error);
+        }
+    };
+
+    const removeFromWatchlist = async (id: string) => {
+        try {
+            const res = await fetch(`/api/finance/watchlist?id=${id}`, {
+                method: 'DELETE',
+            });
+            if (res.ok) {
+                setWatchlist(prev => prev.filter(item => item.id !== id));
+                toast.success('Removed from watchlist');
+            }
+        } catch (error) {
+            toast.error('Failed to remove');
+        }
+    };
+
     return (
         <div className="space-y-8">
             {/* Watchlist Section */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Watchlist</h3>
-                    <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <Plus className="h-4 w-4" />
-                    </Button>
+                    {/* Add button is handled via Search now */}
                 </div>
 
                 <div className="space-y-2">
-                    {/* Mock Watchlist Items */}
-                    {['NABIL', 'CIT', 'NTC'].map((symbol) => (
-                        <div key={symbol} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group">
-                            <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                                    {symbol[0]}
-                                </div>
-                                <div>
-                                    <div className="font-medium text-sm">{symbol}</div>
-                                    <div className="text-[10px] text-muted-foreground">Nepal Stock Exchange</div>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-sm font-medium">₹{(Math.random() * 1000 + 100).toFixed(0)}</div>
-                                <div className="text-xs text-green-500 flex items-center justify-end gap-0.5">
-                                    <Plus className="h-2 w-2" />
-                                    {(Math.random() * 5).toFixed(2)}%
-                                </div>
-                            </div>
+                    {!session ? (
+                        <div className="text-sm text-muted-foreground p-4 text-center border rounded-lg bg-muted/20">
+                            Sign in to create a watchlist
                         </div>
-                    ))}
+                    ) : watchlist.length === 0 ? (
+                        <div className="text-sm text-muted-foreground p-4 text-center border rounded-lg bg-muted/20">
+                            Your watchlist is empty
+                        </div>
+                    ) : (
+                        watchlist.map((item) => (
+                            <div key={item.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors group border border-transparent hover:border-border">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                                        {item.symbol[0]}
+                                    </div>
+                                    <div>
+                                        <div className="font-medium text-sm">{item.symbol}</div>
+                                        <div className="text-[10px] text-muted-foreground">{item.name}</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {/* Placeholder for price - in real app we'd fetch this too */}
+                                    <div className="text-right hidden sm:block">
+                                        <div className="text-sm font-medium">--</div>
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() => removeFromWatchlist(item.id)}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
 

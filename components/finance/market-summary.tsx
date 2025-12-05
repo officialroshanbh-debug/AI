@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -18,6 +19,27 @@ interface MarketSummaryProps {
 }
 
 export function MarketSummary({ news, isLoading }: MarketSummaryProps) {
+    const [summary, setSummary] = useState<string>('');
+    const [isSummaryLoading, setIsSummaryLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchSummary = async () => {
+            try {
+                const res = await fetch('/api/finance/summary');
+                if (res.ok) {
+                    const data = await res.json();
+                    setSummary(data.summary);
+                }
+            } catch (error) {
+                console.error('Failed to fetch market summary');
+            } finally {
+                setIsSummaryLoading(false);
+            }
+        };
+
+        fetchSummary();
+    }, []);
+
     if (isLoading) {
         return (
             <div className="space-y-6">
@@ -37,15 +59,23 @@ export function MarketSummary({ news, isLoading }: MarketSummaryProps) {
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold">Market Summary</h2>
-                    <span className="text-xs text-muted-foreground">Updated just now</span>
+                    <span className="text-xs text-muted-foreground">
+                        {isSummaryLoading ? 'Generating insights...' : 'Updated just now'}
+                    </span>
                 </div>
                 <div className="p-6 rounded-xl border bg-card/50 backdrop-blur-sm">
-                    <p className="text-sm leading-relaxed text-muted-foreground">
-                        <span className="text-foreground font-medium">NEPSE shows resilience amidst regulatory changes. </span>
-                        The market has responded positively to the recent directives from Nepal Rastra Bank regarding microfinance institutions.
-                        Banking and Hydropower sectors are leading the gains, while trading volumes remain steady.
-                        Investors are cautiously optimistic as liquidity in the banking system improves, potentially signaling lower interest rates in the near future.
-                    </p>
+                    {isSummaryLoading ? (
+                        <div className="space-y-2">
+                            <div className="h-4 bg-muted/50 rounded w-full animate-pulse" />
+                            <div className="h-4 bg-muted/50 rounded w-3/4 animate-pulse" />
+                            <div className="h-4 bg-muted/50 rounded w-5/6 animate-pulse" />
+                        </div>
+                    ) : (
+                        <p className="text-sm leading-relaxed text-muted-foreground">
+                            <span className="text-foreground font-medium">AI Insight: </span>
+                            {summary || "Market data is currently unavailable for analysis."}
+                        </p>
+                    )}
                 </div>
             </div>
 
