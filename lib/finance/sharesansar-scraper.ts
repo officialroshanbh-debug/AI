@@ -179,29 +179,20 @@ export async function scrapeShareSansarMarket(): Promise<MarketData | null> {
             for (const line of lines) {
                 if (line.trim().startsWith('|') && line.includes('[')) {
                     const cols = line.split('|').map(c => c.trim()).filter(c => c);
-                    // Expected: [SN, SymbolLink, Conf, Open, High, Low, Close, ...]
-                    // We need to identify columns by content type.
-                    // Symbol is usually in col 1 (0-indexed in array after split/filter)
+                    // Expected: [SN, SymbolLink, Conf, Open, High, Low, Close, LTP, Diff, Diff %, VWAP, Vol, Prev Close, Turnover, Trans, Diff, Range, Diff %, ...]
+                    // Based on analysis of sharesansar_price.md:
+                    // Col 1: Symbol ([ACLBSL]...)
+                    // Col 6: Close
+                    // Col 15: Diff
+                    // Col 17: Diff %
 
-                    if (cols.length > 10) {
+                    if (cols.length > 18) {
                         const symbolMatch = cols[1].match(/\[([^\]]+)\]/);
                         const symbol = symbolMatch ? symbolMatch[1] : cols[1];
 
-                        // We need to find Close, Diff, Diff %
-                        // Usually Close is around col 6, Diff around 11, Diff % around 13
-                        // Let's try to parse numbers from the end or specific positions if consistent.
-                        // From dump: | 330 | [VLBS] | ... | 784.00 | ... | -6.90 | ... | -0.87 | ...
-                        // Let's assume standard columns for now or try to map.
-
-                        // Heuristic: 
-                        // Col 1: Symbol
-                        // Col 6: Close (784.00)
-                        // Col 11: Diff (-6.90)
-                        // Col 13: Diff % (-0.87)
-
                         const close = parseFloat(cols[6].replace(/,/g, ''));
-                        const diff = parseFloat(cols[11].replace(/,/g, ''));
-                        const diffPercent = parseFloat(cols[13].replace(/,/g, ''));
+                        const diff = parseFloat(cols[15].replace(/,/g, ''));
+                        const diffPercent = parseFloat(cols[17].replace(/,/g, ''));
 
                         if (!isNaN(close)) {
                             stocks.push({
