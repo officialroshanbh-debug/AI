@@ -28,7 +28,6 @@ interface WatchlistProps {
 export function Watchlist({ gainers, losers }: WatchlistProps) {
     const { data: session } = useSession();
     const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         if (session?.user) {

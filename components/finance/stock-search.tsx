@@ -68,7 +68,7 @@ export function StockSearch() {
             } else {
                 toast.error('Failed to add to watchlist');
             }
-        } catch (error) {
+        } catch {
             toast.error('Error adding to watchlist');
         }
     };
