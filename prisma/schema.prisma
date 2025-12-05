@@ -72,6 +72,7 @@ model User {
   interests     String[]  @default([]) // List of interested topics e.g. ["Cricket", "Nepal Politics"]
   lastAnalyzedAt DateTime? // When we last analyzed their history
   savedArticles SavedArticle[]
+  watchlist     Watchlist[]
 }
 
 model SavedArticle {
@@ -652,4 +653,17 @@ model ResearchSource {
   section     ResearchSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   @@index([sectionId])
+}
+
+model Watchlist {
+  id        String   @id @default(cuid())
+  userId    String
+  symbol    String
+  name      String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, symbol])
+  @@index([userId])
 }

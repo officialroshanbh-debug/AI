@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { scrapeNepseData } from '@/lib/finance/nepse-scraper';
 
 // Using a free unofficial NEPSE API
 // Source: https://nepse-data-api.vercel.app (or similar community API)
@@ -12,9 +13,26 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
     try {
-        // In a real production app, we would use a paid data provider or a robust scraper.
-        // For this "Perplexity Finance" demo, we will simulate live market data 
-        // to ensure the UI looks perfect, as free APIs are often unstable.
+        // Try to scrape real data first
+        const realData = await scrapeNepseData();
+
+        if (realData && realData.index.value > 0) {
+            return NextResponse.json({
+                indices: [
+                    { name: 'NEPSE', ...realData.index },
+                    { name: 'Sensitive', value: 0, change: 0, percentChange: 0, status: 'neutral' }, // Placeholder
+                    { name: 'Float', value: 0, change: 0, percentChange: 0, status: 'neutral' }, // Placeholder
+                    { name: 'Turnover', value: realData.marketSummary.totalTurnover, change: 0, percentChange: 0, status: 'neutral' },
+                ],
+                gainers: realData.gainers,
+                losers: realData.losers,
+                isOpen: true, // Simplified
+                asOf: realData.index.asOf
+            });
+        }
+
+        // Fallback to mock data if scraping fails
+        console.warn('Scraping failed, using mock data');
 
         // Simulating a fetch delay
         await new Promise(resolve => setTimeout(resolve, 500));
