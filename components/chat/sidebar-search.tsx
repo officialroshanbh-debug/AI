@@ -6,7 +6,7 @@ import { Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 import { useDebounce } from '@/lib/hooks/use-debounce';
-import { cn } from '@/lib/utils';
+
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
