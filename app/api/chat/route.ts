@@ -55,9 +55,10 @@ const chatRequestSchema = z.object({
 });
 
 
+
 // Basic types for chat handling
 interface Attachment {
-  type: 'image' | 'file';
+  type: 'image' | 'file' | 'pdf' | 'document' | 'audio' | 'video' | 'screenshot';
   url: string;
   filename: string;
   analysis?: {
