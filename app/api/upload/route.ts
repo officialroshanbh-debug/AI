@@ -27,16 +27,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Validate file types
-        const allowedTypes = [
-            'image/jpeg',
-            'image/png',
-            'image/gif',
-            'image/webp',
-            'application/pdf',
-            'application/vnd.ms-excel',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'text/csv',
-        ];
+
 
         const processor = new MultimodalProcessor();
         const results = [];
