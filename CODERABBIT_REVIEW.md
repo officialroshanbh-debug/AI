@@ -12,4 +12,5 @@ This file demonstrates the CodeRabbit integration for automated code review.
 - Reduces review time
 - Ensures best practices
 
-This is a test file created to demonstrate CodeRabbit functionality.
+## Usage
+This documentation outlines how CodeRabbit integrates into the project's pull request workflow to provide automated code analysis and review feedback.
