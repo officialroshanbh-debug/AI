@@ -75,6 +75,9 @@
     "tailwindcss-animate": "^1.0.7",
     "sonner": "^1.7.0",
     "@ai-sdk/openai": "^1.0.0",
+    "@sentry/nextjs": "^8.0.0",
+    "pusher": "^5.2.0",
+    "pusher-js": "^8.4.0-rc2",
     "tiktoken": "^1.0.18",
     "zod": "^3.23.8"
   },
