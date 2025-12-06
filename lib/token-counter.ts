@@ -1,6 +1,10 @@
 
 import { get_encoding } from 'tiktoken';
-import { Message } from 'ai/react';
+
+interface Message {
+    role: string;
+    content: string;
+}
 
 const encoding = get_encoding('cl100k_base'); // encoding for gpt-4, gpt-3.5-turbo
 
