@@ -42,6 +42,9 @@ const envSchema = z.object({
     KV_REST_API_URL: z.string().optional(),
     KV_REST_API_TOKEN: z.string().optional(),
     KV_REST_API_READ_ONLY_TOKEN: z.string().optional(),
+
+    // Deployment
+    NEXT_PUBLIC_APP_URL: z.string().url().optional(),
 });
 
 export const env = envSchema.parse(process.env);
