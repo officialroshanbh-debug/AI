@@ -342,7 +342,7 @@ export async function POST(req: NextRequest) {
               if (imageAttachments.length > 0) {
                 const analysisContext = imageAttachments
                   .filter(img => img.analysis?.description)
-                  .map(img => `Image "${img.filename}": ${img.analysis.description}`)
+                  .map(img => `Image "${img.filename}": ${img.analysis?.description}`)
                   .join('\n');
 
                 if (analysisContext) {
