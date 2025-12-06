@@ -38,4 +38,5 @@ export interface ResearchResult {
     wordCount: number;
     readabilityScore: number;
     tokens?: number;
+    summary: string;
 }

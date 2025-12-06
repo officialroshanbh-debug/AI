@@ -171,6 +171,7 @@ export default function ResearchPage() {
             wordCount,
             readabilityScore,
             tokens,
+            summary: responseText || 'No response received',
           };
         } catch (err) {
           console.error(`Error calling model ${config.name}:`, err);
@@ -181,6 +182,7 @@ export default function ResearchPage() {
             responseTime: Date.now() - startTime,
             wordCount: 0,
             readabilityScore: 0,
+            summary: `Error: ${err instanceof Error ? err.message : 'Unknown error'}`,
           };
         }
       });
@@ -259,7 +261,8 @@ export default function ResearchPage() {
                   responseTime: 0,
                   wordCount: result.totalWordCount,
                   readabilityScore: calculateReadability(combineReport(result.outline, result.sections)),
-                  tokens: 0
+                  tokens: 0,
+                  summary: combineReport(result.outline, result.sections)
                 };
 
                 setResults([deepResult]);
