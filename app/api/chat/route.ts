@@ -130,7 +130,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { messages, modelId, chatId, temperature, maxTokens, attachments, userLocation } = validationResult.data;
+    const { messages, modelId, chatId, temperature, maxTokens, userLocation } = validationResult.data;
+    const attachments = validationResult.data.attachments as Attachment[] | undefined;
 
     const model = (modelId || 'gpt-4.1') as ModelId;
     const config = MODEL_CONFIGS[model];
