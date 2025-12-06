@@ -72,11 +72,15 @@ export async function POST(req: NextRequest) {
                     };
                 }
 
+                // Normalize analysis/transcription for the response
+                const analysis = 'analysis' in result ? result.analysis :
+                    ('transcription' in result ? result.transcription : undefined);
+
                 results.push({
                     filename: file.name, // Return original name to user context
                     success: true,
                     mediaFile: result.mediaFile,
-                    analysis: result.analysis,
+                    analysis: analysis,
                 });
             } catch (error) {
                 console.error(`[Upload] Error processing ${file.name}:`, error);
