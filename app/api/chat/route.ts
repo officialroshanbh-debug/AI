@@ -61,6 +61,19 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       const cookieHeader = req.headers.get('cookie');
       const cookieStore = await cookies();
+
+      // Basic types for chat handling
+      interface Attachment {
+        type: 'image' | 'file';
+        url: string;
+        filename: string;
+        analysis?: {
+          description?: string;
+          summary?: string;
+          text?: string;
+          tags?: string[];
+        };
+      }
       const sessionTokenName = env.NODE_ENV === 'production'
         ? '__Secure-next-auth.session-token'
         : 'next-auth.session-token';
@@ -231,18 +244,7 @@ export async function POST(req: NextRequest) {
             context: string;
           }
 
-          // Basic types for chat handling
-          interface Attachment {
-            type: 'image' | 'file';
-            url: string;
-            filename: string;
-            analysis?: {
-              description?: string;
-              summary?: string;
-              text?: string;
-              tags?: string[];
-            };
-          };
+
           interface WeatherData {
             location: { name: string; country: string };
             current: {
