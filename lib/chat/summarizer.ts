@@ -1,5 +1,9 @@
 
-import { Message } from 'ai';
+
+interface Message {
+    role: string;
+    content: string;
+}
 import { OpenAI } from 'openai';
 import { env } from '@/lib/env';
 
