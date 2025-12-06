@@ -5,7 +5,7 @@ import { Copy, Clock, FileText, TrendingUp, ChevronDown, ChevronUp } from 'lucid
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import ReactMarkdown from 'react-markdown';
+import { Markdown } from '@/components/ui/markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { ResearchResult } from '@/types/research';
@@ -85,9 +85,9 @@ export function ResearchResults({ results, onCopy }: ResearchResultsProps) {
                 </div>
 
                 <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown
+                  <Markdown
                     components={{
-                      code({ inline, className, children, ...props }: React.ComponentPropsWithoutRef<'code'> & { inline?: boolean }) {
+                      code({ node, inline, className, children, ...props }: any) {
                         const match = /language-(\w+)/.exec(className || '');
                         return !inline && match ? (
                           <SyntaxHighlighter
@@ -95,19 +95,20 @@ export function ResearchResults({ results, onCopy }: ResearchResultsProps) {
                             style={vscDarkPlus}
                             language={match[1]}
                             PreTag="div"
+                            className="rounded-md !my-2 !bg-zinc-950/50 border border-zinc-800"
                           >
                             {String(children).replace(/\n$/, '')}
                           </SyntaxHighlighter>
                         ) : (
-                          <code {...props} className={cn(className, "bg-muted px-1 py-0.5 rounded")}>
+                          <code {...props} className="bg-zinc-800/50 rounded px-1 py-0.5 text-xs font-mono">
                             {children}
                           </code>
                         );
-                      },
+                      }
                     }}
                   >
-                    {result.response}
-                  </ReactMarkdown>
+                    {result.summary}
+                  </Markdown>
                 </div>
               </CardContent>
             )}

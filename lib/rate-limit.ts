@@ -1,43 +1,39 @@
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { env } from '@/lib/env';
 
-let redis: Redis | null = null;
+// Create a new ratelimiter, that allows requests per the tiered limits
+// Using Upstash Redis for distributed state
+const redis = new Redis({
+  url: env.UPSTASH_REDIS_REST_URL!,
+  token: env.UPSTASH_REDIS_REST_TOKEN!,
+});
 
-if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-  redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN,
-  });
+type RateLimitTier = 'free' | 'pro' | 'enterprise';
+
+interface RateLimitConfig {
+  requests: number;
+  window: `${number} s` | `${number} m` | `${number} h` | `${number} d`;
 }
 
-// Type for rate limiter interface we actually use
-type RateLimiterInterface = {
-  limit: (identifier: string) => Promise<{
-    success: boolean;
-    limit: number;
-    remaining: number;
-    reset: number;
-  }>;
+const TIER_LIMITS: Record<RateLimitTier, RateLimitConfig> = {
+  free: { requests: 10, window: '1 m' },      // 10 req/min
+  pro: { requests: 50, window: '1 m' },       // 50 req/min
+  enterprise: { requests: 1000, window: '1 m' } // High limit
 };
 
-// Fallback rate limiter that always allows requests if Redis is not configured
-const noopLimiter: RateLimiterInterface = {
-  limit: async () => ({ success: true, limit: 10, remaining: 10, reset: Date.now() }),
+export const rateLimiter = {
+  limit: async (userId: string, tier: RateLimitTier = 'free') => {
+    if (tier === 'enterprise') return { success: true, limit: 1000, remaining: 1000, reset: 0 };
+
+    const config = TIER_LIMITS[tier];
+    const limiter = new Ratelimit({
+      redis: redis,
+      limiter: Ratelimit.slidingWindow(config.requests, config.window),
+      analytics: true,
+      prefix: `@upstash/ratelimit/${tier}`,
+    });
+
+    return await limiter.limit(userId);
+  }
 };
-
-export const rateLimiter: RateLimiterInterface = redis
-  ? (new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(10, '10 s'),
-      analytics: true,
-    }) as unknown as RateLimiterInterface)
-  : noopLimiter;
-
-export const strictRateLimiter: RateLimiterInterface = redis
-  ? (new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(5, '1 m'),
-      analytics: true,
-    }) as unknown as RateLimiterInterface)
-  : noopLimiter;
-

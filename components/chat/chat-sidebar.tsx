@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Plus, MessageSquare } from 'lucide-react';
+import { SidebarSearch } from './sidebar-search';
 import type { ChatSummary } from '@/app/actions/chat';
 import { deleteChat } from '@/app/actions/chat';
 import { Button } from '@/components/ui/button';
@@ -108,6 +109,8 @@ export function ChatSidebar({ chats, currentChatId }: ChatSidebarProps) {
           <Plus className="h-4 w-4" />
         </Button>
       </div>
+
+      <SidebarSearch />
 
       {/* Chat list */}
       <div className="flex-1 overflow-y-auto px-2 py-3 space-y-4">

@@ -1,24 +1,23 @@
 import { PrismaClient } from '@prisma/client';
+import { env } from '@/lib/env';
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+const prismaClientSingleton = () => {
+  return new PrismaClient({
+    log: env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
 };
 
-// Configure Prisma for serverless environments
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  });
+type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
 
-// Handle connection errors gracefully
-prisma.$on('error' as never, (e: Error) => {
-  console.error('[Prisma] Database error:', {
-    message: e.message,
-    name: e.name,
-    stack: e.stack,
-  });
-});
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClientSingleton | undefined;
+};
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+export const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
+
+if (env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+// Export as 'db' as well for convenience
+export const db = prisma;
+
 

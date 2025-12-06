@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
+import Pusher from 'pusher-js';
 import { ChatMessage } from './chat-message';
 import { ChatInput } from './chat-input';
 import { ModelSelector } from './model-selector';
 import { ChatSkeleton } from './chat-skeleton';
 import { TemplateSelector } from './template-selector';
-import { ExportButton } from './export-button';
+import { ChatExport } from './chat-export';
 import { AttachmentPreview } from './attachment-preview';
 import { Button } from '@/components/ui/button';
 import { Trash2, FileText } from 'lucide-react';
@@ -44,6 +45,52 @@ export function ChatContainer({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Real-time Collaboration (Pusher)
+  useEffect(() => {
+    if (!chatId) return;
+
+    const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
+
+    if (!pusherKey || !pusherCluster) return;
+
+    const pusher = new Pusher(pusherKey, {
+      cluster: pusherCluster,
+    });
+
+    const channel = pusher.subscribe(`chat-${chatId}`);
+
+    channel.bind('new-message', (data: Message & { id?: string }) => {
+      setMessages((prev) => {
+        // Prevent duplicate messages
+        // If we have a temporary ID or if the content matches exactly for the last message
+        const lastMsg = prev[prev.length - 1];
+        if (
+          lastMsg &&
+          lastMsg.role === data.role &&
+          lastMsg.content === data.content &&
+          // If it's a user message, we definitely added it optimistically
+          (data.role === 'user' ||
+            // If it's an assistant message, we might have added it via stream
+            (data.role === 'assistant' && !isStreaming))
+        ) {
+          return prev;
+        }
+
+        // If we are currently streaming an assistant response, ignore the "new-message" event for it
+        // until the stream is done, but the event fires after stream is done usually.
+        // However, if another user is getting the stream, WE (this client) are not isStreaming=true.
+        // So we should append it.
+
+        return [...prev, data];
+      });
+    });
+
+    return () => {
+      pusher.unsubscribe(`chat-${chatId}`);
+    };
+  }, [chatId, isStreaming]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts([
@@ -326,7 +373,7 @@ export function ChatContainer({
                 aria-label="Select AI model"
               />
               {messages.length > 0 && chatId && (
-                <ExportButton chatId={chatId} />
+                <ChatExport chatId={chatId} title={initialMessages.length > 0 ? initialMessages[0].content.slice(0, 30) : 'Chat'} messages={messages} />
               )}
               {messages.length > 0 && (
                 <Button

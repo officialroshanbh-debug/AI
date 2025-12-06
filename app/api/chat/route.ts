@@ -1,3 +1,7 @@
+
+import { withTimeout } from '@/lib/timeout';
+import * as Sentry from '@sentry/nextjs';
+import { env } from '@/lib/env';
 import { auth } from '@/auth';
 import { modelRouter } from '@/lib/models/router';
 import { rateLimiter } from '@/lib/rate-limit';
@@ -7,6 +11,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { WebResearchAgent } from '@/lib/agents/web-research-agent';
+import { pusherServer } from '@/lib/pusher';
+import { countMessageTokens } from '@/lib/token-counter';
+import { summarizeMessages } from '@/lib/chat/summarizer';
 
 // Model mapping with fallbacks - using more universally available models
 const OPENAI_MODEL_MAP: Record<string, string[]> = {
@@ -14,8 +21,6 @@ const OPENAI_MODEL_MAP: Record<string, string[]> = {
   'gpt-4.1': ['gpt-4', 'gpt-4-turbo', 'gpt-4-turbo-preview'],
   'o3-mini': ['gpt-3.5-turbo-0125', 'gpt-3.5-turbo-1106', 'gpt-3.5-turbo'],
 };
-
-// Removed token limit capping - provider handles limits dynamically based on context window
 
 export const maxDuration = 300;
 
@@ -38,7 +43,7 @@ const chatRequestSchema = z.object({
       url: z.string().url(),
       filename: z.string(),
       mimeType: z.string(),
-      analysis: z.any().optional(),
+      analysis: z.unknown().optional(),
     })
   ).optional(),
   userLocation: z.object({
@@ -51,14 +56,12 @@ const chatRequestSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    // Authentication - in NextAuth v5, auth() reads from cookies() automatically
-    // But we need to ensure cookies are available in the request context
     const session = await auth();
 
     if (!session?.user) {
       const cookieHeader = req.headers.get('cookie');
       const cookieStore = await cookies();
-      const sessionTokenName = process.env.NODE_ENV === 'production'
+      const sessionTokenName = env.NODE_ENV === 'production'
         ? '__Secure-next-auth.session-token'
         : 'next-auth.session-token';
       const sessionToken = cookieStore.get(sessionTokenName);
@@ -81,9 +84,23 @@ export async function POST(req: NextRequest) {
     }
 
     // Rate limiting
-    const { success } = await rateLimiter.limit(userId);
+    const userRole = (session.user as any).role || 'user';
+    const tier = userRole === 'admin' ? 'enterprise' : 'free';
+
+    const { success, limit, reset, remaining } = await rateLimiter.limit(userId, tier);
+
     if (!success) {
-      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+      return NextResponse.json(
+        { error: 'Too Many Requests', retryAfter: Math.ceil((reset - Date.now()) / 1000) },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': limit.toString(),
+            'X-RateLimit-Remaining': remaining.toString(),
+            'X-RateLimit-Reset': reset.toString()
+          }
+        }
+      );
     }
 
     // Validate request body with Zod
@@ -105,9 +122,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid model' }, { status: 400 });
     }
 
-    // Don't cap maxTokens - let the provider handle it dynamically
-    // The provider will calculate available tokens based on input messages
-    const finalMaxTokens = maxTokens || undefined; // Pass through if provided, otherwise let provider decide
+    const finalMaxTokens = maxTokens || undefined;
+
+    // SMART CONTEXT WINDOW MANAGEMENT
+    let processedMessages = [...messages];
+    const TOKEN_THRESHOLD = 4000; // Trigger summarization at 4000 tokens of history
+
+    try {
+      const totalTokens = countMessageTokens(processedMessages as any);
+
+      if (totalTokens > TOKEN_THRESHOLD) {
+        console.log(`[Smart Context] Token count ${totalTokens} exceeds threshold ${TOKEN_THRESHOLD}. Summarizing...`);
+
+        // Strategy: Keep last 5 messages intact, summarize the rest
+        const recentMessagesCount = 5;
+        if (processedMessages.length > recentMessagesCount + 1) { // Need at least 2 messages to summarize
+          const messagesToSummarize = processedMessages.slice(0, processedMessages.length - recentMessagesCount);
+          const recentMessages = processedMessages.slice(processedMessages.length - recentMessagesCount);
+
+          const summary = await summarizeMessages(messagesToSummarize as any);
+
+          if (summary) {
+            processedMessages = [
+              { role: 'system', content: `Previous conversation summary: ${summary}` },
+              ...recentMessages
+            ];
+            console.log('[Smart Context] Summarization complete. History compressed.');
+          }
+        }
+      }
+    } catch (tokenError) {
+      console.error('[Smart Context] Token counting/summarization failed:', tokenError);
+    }
 
     // Debug logging for token limits
     if (config.provider === 'openai') {
@@ -139,7 +185,6 @@ export async function POST(req: NextRequest) {
         });
       }
     } catch (error) {
-      // Check if it's a table not found error
       if (error && typeof error === 'object' && 'code' in error && error.code === 'P2021') {
         console.error('[Chat API] Database schema error - tables not found. Please run migrations.');
         return NextResponse.json(
@@ -153,27 +198,27 @@ export async function POST(req: NextRequest) {
       throw error;
     }
 
-    // Prepare user message save (but don't await yet - start streaming first)
+    // Save user message sequentially
     const lastMessage = messages[messages.length - 1];
-    const userMessagePromise = lastMessage.role === 'user'
-      ? prisma.message.create({
+    if (lastMessage.role === 'user') {
+      const savedMessage = await prisma.message.create({
         data: {
           chatId: chat.id,
           role: 'user',
           content: lastMessage.content,
           modelId: model,
         },
-      })
-      : Promise.resolve(null);
+      });
 
-    // Check if user is asking about weather
+      if (pusherServer) {
+        await pusherServer.trigger(`chat-${chat.id}`, 'new-message', savedMessage);
+      }
+    }
+
     const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content || '';
     const lastUserMessageLower = lastUserMessage.toLowerCase();
     const isWeatherQuery = /weather|temperature|rain|snow|forecast|climate|hot|cold|humidity|wind/.test(lastUserMessageLower);
 
-    // Weather fetch moved inside stream for performance
-
-    // WEB RESEARCH INTEGRATION
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
@@ -181,10 +226,6 @@ export async function POST(req: NextRequest) {
         const dbWritePromises: Promise<unknown>[] = [];
 
         try {
-          // Start user message save in parallel (don't block on it)
-          dbWritePromises.push(userMessagePromise);
-
-          // WEB RESEARCH INTEGRATION (Inside stream for progress updates)
           interface ResearchData {
             citations: any[];
             context: string;
@@ -204,44 +245,52 @@ export async function POST(req: NextRequest) {
 
           let researchData: ResearchData | null = null;
           let weatherData: WeatherData | null = null;
-
-          // Parallelize research and weather fetch
           const tasks: Promise<unknown>[] = [];
 
           if (WebResearchAgent.detectIntent(lastUserMessage)) {
-            // Start research and track it
-            tasks.push(WebResearchAgent.research(lastUserMessage, userLocation, (status) => {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status })}\n\n`));
-            }).then(res => {
+            tasks.push(withTimeout(
+              WebResearchAgent.research(lastUserMessage, userLocation, (status) => {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status })}\n\n`));
+              }),
+              60000,
+              'Research timed out'
+            ).then(res => {
               researchData = res as ResearchData;
-              // Send citations as soon as available
               if (res.citations.length > 0) {
                 controller.enqueue(
                   encoder.encode(`data: ${JSON.stringify({ citations: res.citations })}\n\n`)
                 );
               }
               return res;
+            }).catch(err => {
+              console.error('Research failed or timed out:', err);
+              return null;
             }));
           }
 
           if (isWeatherQuery && userLocation) {
-            tasks.push(fetch(
-              `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/weather?lat=${userLocation.latitude}&lon=${userLocation.longitude}&city=${userLocation.city || ''}`
-            ).then(res => res.ok ? res.json() : null).then(data => weatherData = data as WeatherData).catch(err => console.error('Weather fetch failed:', err)));
+            tasks.push(withTimeout(
+              fetch(
+                `${env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/weather?lat=${userLocation.latitude}&lon=${userLocation.longitude}&city=${userLocation.city || ''}`
+              ).then(res => res.ok ? res.json() : null),
+              10000,
+              'Weather fetch timed out'
+            ).then(data => weatherData = data as WeatherData).catch(err => console.error('Weather fetch failed:', err)));
           }
 
-          // Wait for research to complete so the AI has context
           if (tasks.length > 0) {
             await Promise.all(tasks);
           }
 
-          // Get provider
+          const streamTimeout = setTimeout(() => {
+            controller.error(new Error('Request timeout: Generation took too long'));
+          }, 290000);
+
           const provider = modelRouter.getProvider(model);
 
-          // Enhance messages with context
-          const enhancedMessages = [...messages];
+          // Enhance messages with context - USING PROCESSED MESSAGES (summarized)
+          const enhancedMessages = [...processedMessages];
 
-          // Add weather context
           if (weatherData && isWeatherQuery) {
             const data = weatherData as WeatherData;
             const weatherContext = `Current weather in ${data.location.name}, ${data.location.country}:
@@ -257,7 +306,6 @@ export async function POST(req: NextRequest) {
             });
           }
 
-          // Add research context if available
           if (researchData && (researchData as ResearchData).context) {
             enhancedMessages.splice(-1, 0, {
               role: 'system',
@@ -265,25 +313,20 @@ export async function POST(req: NextRequest) {
             });
           }
 
-          // Process attachments if present
           if (attachments && attachments.length > 0) {
-            // Check if model supports vision (GPT-4V, Claude with vision, etc.)
             const supportsVision = model.includes('gpt-4') || model.includes('gpt-5');
 
             if (supportsVision) {
-              // For vision models, we need to format the last user message with images
               const lastUserIndex = enhancedMessages.length - 1;
               const imageAttachments = attachments.filter(a => a.type === 'image');
 
               if (imageAttachments.length > 0) {
-                // Add image analysis context if available
                 const analysisContext = imageAttachments
                   .filter(img => img.analysis?.description)
                   .map(img => `Image "${img.filename}": ${img.analysis.description}`)
                   .join('\n');
 
                 if (analysisContext) {
-                  // Prepend analysis to user's message
                   enhancedMessages[lastUserIndex] = {
                     ...enhancedMessages[lastUserIndex],
                     content: `${analysisContext}\n\nUser: ${enhancedMessages[lastUserIndex].content}`,
@@ -292,7 +335,6 @@ export async function POST(req: NextRequest) {
               }
             }
 
-            // For non-image attachments (PDFs, documents), add their content/analysis as context
             const documentAttachments = attachments.filter(a => a.type === 'pdf' || a.type === 'document');
             if (documentAttachments.length > 0) {
               const docContext = documentAttachments
@@ -311,7 +353,6 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // Start streaming immediately
           for await (const chunk of provider.streamModel({
             messages: enhancedMessages.map((m) => ({
               role: m.role as 'user' | 'assistant' | 'system',
@@ -331,7 +372,8 @@ export async function POST(req: NextRequest) {
             }
 
             if (chunk.done) {
-              // Prepare database writes but don't await yet
+              clearTimeout(streamTimeout);
+
               const assistantMessagePromise = prisma.message.create({
                 data: {
                   chatId: chat.id,
@@ -353,8 +395,20 @@ export async function POST(req: NextRequest) {
                 return null;
               });
 
-              // Track promises to ensure they complete
               dbWritePromises.push(assistantMessagePromise, usageLogPromise);
+
+              if (pusherServer) {
+                dbWritePromises.push(
+                  pusherServer.trigger(`chat-${chat.id}`, 'new-message', {
+                    id: 'temp-id-' + Date.now(),
+                    chatId: chat.id,
+                    role: 'assistant',
+                    content: fullContent,
+                    modelId: model,
+                    createdAt: new Date(),
+                  })
+                );
+              }
 
               controller.enqueue(encoder.encode('data: [DONE]\n\n'));
               controller.close();
@@ -364,7 +418,6 @@ export async function POST(req: NextRequest) {
           console.error('Streaming error:', error);
           controller.error(error);
         } finally {
-          // Fire and forget - don't await
           Promise.allSettled(dbWritePromises).catch(dbError => {
             console.error('Database write error (non-blocking):', dbError);
           });
@@ -381,10 +434,13 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('Chat API error:', error);
+    Sentry.captureException(error, {
+      tags: { route: 'chat-api' },
+      extra: { userId: (await auth())?.user?.id },
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     );
   }
 }
-

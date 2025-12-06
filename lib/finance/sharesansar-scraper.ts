@@ -161,9 +161,9 @@ export async function scrapeShareSansarMarket(): Promise<MarketData | null> {
         const priceUrl = 'https://www.sharesansar.com/today-share-price';
         const results = await readUrls([priceUrl]);
 
-        let gainers: any[] = [];
-        let losers: any[] = [];
-        const stocks: any[] = [];
+        let gainers: MarketData['gainers'] = [];
+        let losers: MarketData['losers'] = [];
+        const stocks: MarketData['gainers'] = [];
 
         if (results && results.length > 0 && results[0].content) {
             const content = results[0].content;

@@ -65,8 +65,8 @@ export async function scrapeNepseData(): Promise<NepseData | null> {
         // For now, we'll try to extract them if they appear in a predictable list format.
         // If Jina returns a markdown table, it looks like: | Symbol | LTP | ... |
 
-        const gainers: any[] = [];
-        const losers: any[] = [];
+        const gainers: NepseData['gainers'] = [];
+        const losers: NepseData['losers'] = [];
 
         // Helper to parse table rows
         const parseTableRows = (sectionText: string) => {
@@ -89,14 +89,14 @@ export async function scrapeNepseData(): Promise<NepseData | null> {
         // Find "Top Gainers" section
         const gainersSection = content.split('Top Gainers')[1]?.split('Top Losers')[0];
         if (gainersSection) {
-            const parsedGainers = parseTableRows(gainersSection);
+            const parsedGainers = parseTableRows(gainersSection).filter((i): i is NonNullable<typeof i> => i !== null);
             gainers.push(...parsedGainers.slice(0, 5));
         }
 
         // Find "Top Losers" section
         const losersSection = content.split('Top Losers')[1]?.split('Top Turnovers')[0]; // Assuming Top Turnovers follows
         if (losersSection) {
-            const parsedLosers = parseTableRows(losersSection);
+            const parsedLosers = parseTableRows(losersSection).filter((i): i is NonNullable<typeof i> => i !== null);
             losers.push(...parsedLosers.slice(0, 5));
         }
 

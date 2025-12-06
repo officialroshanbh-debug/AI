@@ -49,6 +49,7 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   role          String    @default("user") // 'user' | 'admin'
+  maxConcurrentSessions Int @default(3)
 
   accounts      Account[]
   sessions      Session[]
@@ -119,6 +120,8 @@ model Chat {
   @@index([userId])
   @@index([workspaceId])
   @@index([createdAt])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, modelId, createdAt])
 }
 
 model Message {
@@ -138,6 +141,8 @@ model Message {
 
   @@index([chatId])
   @@index([createdAt])
+  @@index([chatId, createdAt(sort: Asc)])
+  @@index([role, createdAt])
 }
 
 model ModelSelection {
@@ -224,6 +229,8 @@ model UsageLog {
   @@index([userId])
   @@index([modelId])
   @@index([createdAt])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([modelId, createdAt])
 }
 
 // AI Agents & Multi-Agent System

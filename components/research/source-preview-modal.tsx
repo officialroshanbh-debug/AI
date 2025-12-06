@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Copy, Check } from 'lucide-react';
 import { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { Markdown } from '@/components/ui/markdown';
 
 interface SourcePreviewModalProps {
     open: boolean;
@@ -58,7 +58,7 @@ export function SourcePreviewModal({
                 <div className="flex-1 overflow-y-auto">
                     <div className="prose prose-sm dark:prose-invert max-w-none">
                         {content ? (
-                            <ReactMarkdown>{content}</ReactMarkdown>
+                            <Markdown>{content}</Markdown>
                         ) : (
                             <p className="text-muted-foreground">No content available</p>
                         )}

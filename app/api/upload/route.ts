@@ -1,6 +1,7 @@
 import { auth } from '@/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { MultimodalProcessor } from '@/lib/multimodal/processor';
+import { validateAndUploadFile } from '@/lib/file-validation';
 
 export const maxDuration = 300;
 
@@ -41,56 +42,47 @@ export async function POST(req: NextRequest) {
         const results = [];
 
         for (const file of files) {
-            // Validate file type
-            if (!allowedTypes.includes(file.type)) {
-                results.push({
-                    filename: file.name,
-                    error: `Unsupported file type: ${file.type}`,
-                });
-                continue;
-            }
-
-            // Validate file size (max 10MB)
-            if (file.size > 10 * 1024 * 1024) {
-                results.push({
-                    filename: file.name,
-                    error: 'File size exceeds 10MB limit',
-                });
-                continue;
-            }
-
             try {
-                // Process file based on type
+                // Determine file category for validation
+                let category: 'image' | 'document' | 'audio' = 'document';
+                if (file.type.startsWith('image/')) category = 'image';
+                else if (file.type.startsWith('audio/')) category = 'audio';
+
+                // Validate and upload securely
+                const { url, filename, mimeType, size } = await validateAndUploadFile(file, userId, category);
+
+                // Process file based on type (passing the secure URL to avoid re-upload)
                 let result;
 
                 if (file.type.startsWith('image/')) {
-                    result = await processor.processImage(file, file.name);
+                    result = await processor.processImage(file, filename, url);
                 } else if (file.type === 'application/pdf') {
-                    result = await processor.processPDF(file, file.name);
+                    result = await processor.processPDF(file, filename, url);
+                } else if (file.type.startsWith('audio/')) {
+                    result = await processor.processAudio(file, filename, url);
                 } else {
-                    // Handle Excel/CSV as documents
-                    const buffer = Buffer.from(await file.arrayBuffer());
-                    const { put } = await import('@vercel/blob');
-                    const blob = await put(file.name, buffer, {
-                        access: 'public',
-                        contentType: file.type,
-                    });
-
+                    // Handle other documents (Excel/CSV/Word)
+                    // For these, we just return the uploaded file info as we might not have specific processing logic yet
                     result = {
                         mediaFile: {
                             id: `doc-${Date.now()}`,
                             type: 'document' as const,
-                            url: blob.url,
-                            filename: file.name,
-                            mimeType: file.type,
-                            size: file.size,
+                            url: url,
+                            filename: filename,
+                            mimeType: mimeType,
+                            size: size,
                             metadata: {},
                         },
+                        analysis: {
+                            content: 'Document uploaded successfully',
+                            summary: 'No analysis available for this file type',
+                            metadata: {},
+                        }
                     };
                 }
 
                 results.push({
-                    filename: file.name,
+                    filename: file.name, // Return original name to user context
                     success: true,
                     mediaFile: result.mediaFile,
                     analysis: result.analysis,

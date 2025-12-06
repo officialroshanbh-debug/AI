@@ -14,6 +14,9 @@ export interface SaveMessageParams {
   modelId?: ModelId;
 }
 
+// Export necessary types
+export type { Message } from '@prisma/client';
+
 export interface ChatSummary {
   id: string;
   title: string;

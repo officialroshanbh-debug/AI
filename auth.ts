@@ -1,4 +1,5 @@
 import NextAuth from 'next-auth';
+import { env } from '@/lib/env';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@/lib/prisma';
 import Google from 'next-auth/providers/google';
@@ -8,7 +9,7 @@ if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  secret: env.AUTH_SECRET || env.NEXTAUTH_SECRET,
   adapter: PrismaAdapter(prisma),
   trustHost: true, // Required for Vercel deployments
   session: {
@@ -21,8 +22,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   providers: [
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
       allowDangerousEmailAccountLinking: true,
       authorization: {
         params: {

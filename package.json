@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "prebuild": "node scripts/health-check.js",
-    "build": "prisma generate && prisma migrate deploy && next build",
-    "vercel-build": "prisma generate && prisma migrate deploy && next build",
+    "build": "next build",
+    "vercel-build": "next build",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "next lint",
@@ -75,6 +75,7 @@
     "tailwindcss-animate": "^1.0.7",
     "sonner": "^1.7.0",
     "@ai-sdk/openai": "^1.0.0",
+    "tiktoken": "^1.0.18",
     "zod": "^3.23.8"
   },
   "devDependencies": {

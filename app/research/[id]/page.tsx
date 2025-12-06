@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, FileText, Share2, Download } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import ReactMarkdown from 'react-markdown';
+import { Markdown } from '@/components/ui/markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { cn } from '@/lib/utils';
@@ -89,31 +89,31 @@ export default async function ResearchPage({ params }: ResearchPageProps) {
                             {index + 1}. {section.title}
                         </h2>
 
-                        <div className="prose prose-neutral dark:prose-invert max-w-none">
-                            <ReactMarkdown
-                                components={{
-                                    code({ inline, className, children, ...props }: React.ComponentPropsWithoutRef<'code'> & { inline?: boolean }) {
-                                        const match = /language-(\w+)/.exec(className || '');
-                                        return !inline && match ? (
-                                            <SyntaxHighlighter
-                                                {...props}
-                                                style={vscDarkPlus}
-                                                language={match[1]}
-                                                PreTag="div"
-                                            >
-                                                {String(children).replace(/\n$/, '')}
-                                            </SyntaxHighlighter>
-                                        ) : (
-                                            <code {...props} className={cn(className, "bg-muted px-1 py-0.5 rounded")}>
-                                                {children}
-                                            </code>
-                                        );
-                                    },
-                                }}
-                            >
-                                {section.content}
-                            </ReactMarkdown>
-                        </div>
+                        <Markdown
+                            className="prose dark:prose-invert max-w-none text-zinc-300"
+                            components={{
+                                code({ node, inline, className, children, ...props }: any) {
+                                    const match = /language-(\w+)/.exec(className || '');
+                                    return !inline && match ? (
+                                        <SyntaxHighlighter
+                                            {...props}
+                                            style={vscDarkPlus}
+                                            language={match[1]}
+                                            PreTag="div"
+                                            className="rounded-md !my-4 !bg-zinc-950 border border-zinc-800"
+                                        >
+                                            {String(children).replace(/\n$/, '')}
+                                        </SyntaxHighlighter>
+                                    ) : (
+                                        <code {...props} className="bg-zinc-800/50 rounded px-1 py-0.5 text-xs font-mono">
+                                            {children}
+                                        </code>
+                                    );
+                                }
+                            }}
+                        >
+                            {section.content}
+                        </Markdown>
 
                         {section.sources.length > 0 && (
                             <div className="mt-6 pt-4 border-t">

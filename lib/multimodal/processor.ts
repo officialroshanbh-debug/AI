@@ -5,10 +5,11 @@
 
 import { put } from '@vercel/blob';
 import OpenAI from 'openai';
+import { env } from '@/lib/env';
 import { MediaFile, MediaType, VisionAnalysis, AudioTranscription, DocumentAnalysis } from './types';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: env.OPENAI_API_KEY,
 });
 
 export class MultimodalProcessor {
@@ -30,7 +31,7 @@ export class MultimodalProcessor {
   /**
    * Process an image file and extract information using GPT-4V
    */
-  async processImage(file: File | Buffer, filename: string): Promise<{
+  async processImage(file: File | Buffer, filename: string, uploadedUrl?: string): Promise<{
     mediaFile: MediaFile;
     analysis: VisionAnalysis;
   }> {
@@ -52,9 +53,9 @@ export class MultimodalProcessor {
       // Sharp not installed or failed - dimensions remain 0
     }
 
-    // Upload to Vercel Blob
+    // Upload to Vercel Blob if not already uploaded
     const mimeType = file instanceof File ? file.type : 'image/jpeg';
-    const blobUrl = await this.uploadToBlob(buffer, filename, mimeType);
+    const blobUrl = uploadedUrl || await this.uploadToBlob(buffer, filename, mimeType);
 
     // Analyze with GPT-4V
     let analysis: VisionAnalysis = {
@@ -132,7 +133,7 @@ export class MultimodalProcessor {
   /**
    * Process an audio file and transcribe it using Whisper API
    */
-  async processAudio(file: File | Buffer, filename: string): Promise<{
+  async processAudio(file: File | Buffer, filename: string, uploadedUrl?: string): Promise<{
     mediaFile: MediaFile;
     transcription: AudioTranscription;
   }> {
@@ -140,8 +141,8 @@ export class MultimodalProcessor {
     const size = buffer.byteLength;
     const mimeType = file instanceof File ? file.type : 'audio/mpeg';
 
-    // Upload to Vercel Blob
-    const blobUrl = await this.uploadToBlob(buffer, filename, mimeType);
+    // Upload to Vercel Blob if not already uploaded
+    const blobUrl = uploadedUrl || await this.uploadToBlob(buffer, filename, mimeType);
 
     // Transcribe with Whisper API
     let transcription: AudioTranscription = {
@@ -227,7 +228,7 @@ export class MultimodalProcessor {
   /**
    * Process a PDF document
    */
-  async processPDF(file: File | Buffer, filename: string): Promise<{
+  async processPDF(file: File | Buffer, filename: string, uploadedUrl?: string): Promise<{
     mediaFile: MediaFile;
     analysis: DocumentAnalysis;
   }> {
@@ -235,8 +236,8 @@ export class MultimodalProcessor {
     const size = buffer.byteLength;
     const mimeType = 'application/pdf';
 
-    // Upload to Vercel Blob
-    const blobUrl = await this.uploadToBlob(buffer, filename, mimeType);
+    // Upload to Vercel Blob if not already uploaded
+    const blobUrl = uploadedUrl || await this.uploadToBlob(buffer, filename, mimeType);
 
     // Extract text from PDF (basic implementation)
     // In production, use pdf-parse or pdfjs-dist

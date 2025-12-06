@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { env } from '@/lib/env';
 import { HimalayaProvider } from '@/lib/models/himalaya-provider';
 import { scrapeNepseData } from '@/lib/finance/nepse-scraper';
 
@@ -24,9 +25,9 @@ export async function GET() {
         // 2. Fetch News (simulated or real)
         // We'll use a quick fetch to our own news API or just mock it for the prompt context
         // Ideally we'd import the news fetching logic directly
-        const newsRes = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/finance/news`);
+        const newsRes = await fetch(`${env.NEXTAUTH_URL || 'http://localhost:3000'}/api/finance/news`);
         const newsData = await newsRes.ok ? await newsRes.json() : { results: [] };
-        const newsHeadlines = newsData.results?.slice(0, 5).map((n: any) => n.title).join('\n') || "No recent news.";
+        const newsHeadlines = newsData.results?.slice(0, 5).map((n: { title: string }) => n.title).join('\n') || "No recent news.";
 
         // 3. Generate Summary
         const provider = new HimalayaProvider();

@@ -29,7 +29,7 @@ export async function GET(_req: Request) {
         }
 
         // 3. Fetch "For You" News
-        let forYouNews: any[] = [];
+        let forYouNews = [];
         const interests = user?.interests || [];
 
         if (interests.length > 0) {
