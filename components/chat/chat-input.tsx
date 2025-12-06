@@ -5,6 +5,7 @@ import { Send, Paperclip, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { VoiceRecorder } from './voice-recorder';
+import { PromptLibrary } from '../prompts/prompt-library';
 import {
   Tooltip,
   TooltipContent,
@@ -133,6 +134,33 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
               }
             }}
             disabled={disabled}
+          />
+
+          <PromptLibrary
+            onInsert={(template) => {
+              const element = typeof textareaRef === 'function' ? null : textareaRef?.current;
+              if (element) {
+                const start = element.selectionStart;
+                const end = element.selectionEnd;
+                const newValue = message.substring(0, start) + template + message.substring(end);
+
+                // Trigger change
+                if (onChange) {
+                  const event = {
+                    target: { value: newValue }
+                  } as React.ChangeEvent<HTMLTextAreaElement>;
+                  onChange(event);
+                } else {
+                  setInternalMessage(newValue);
+                }
+
+                // Focus back
+                setTimeout(() => {
+                  element.focus();
+                  element.selectionStart = element.selectionEnd = start + template.length;
+                }, 0);
+              }
+            }}
           />
 
           <input
