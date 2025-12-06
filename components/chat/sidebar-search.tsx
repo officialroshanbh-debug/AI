@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 
 import { useDebounce } from '@/lib/hooks/use-debounce';
 
-import Link from 'next/link';
+
 import { useRouter } from 'next/navigation';
 
 interface SearchResult {
