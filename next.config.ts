@@ -99,7 +99,7 @@ export default withSentryConfig(nextConfig, {
   silent: true,
   org: "roshan-ai",
   project: "ai-platform",
-}, {
+
   // For all available options, see:
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
 
@@ -127,4 +127,3 @@ export default withSentryConfig(nextConfig, {
   // https://vercel.com/docs/cron-jobs
   automaticVercelMonitors: true,
 });
-
