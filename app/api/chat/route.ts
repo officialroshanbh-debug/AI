@@ -231,6 +231,18 @@ export async function POST(req: NextRequest) {
             context: string;
           }
 
+          // Basic types for chat handling
+          interface Attachment {
+            type: 'image' | 'file';
+            url: string;
+            filename: string;
+            analysis?: {
+              description?: string;
+              summary?: string;
+              text?: string;
+              tags?: string[];
+            };
+          };
           interface WeatherData {
             location: { name: string; country: string };
             current: {
